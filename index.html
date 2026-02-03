@@ -1,0 +1,2099 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Data Extractor - Enhanced with PDF Processing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* TRON LEGACY THEME */
+            --tron-cyan: #00d4ff;
+            --tron-cyan-dim: rgba(0, 212, 255, 0.25);
+            --tron-cyan-glow: rgba(0, 212, 255, 0.5);
+            --tron-orange: #ff6600;
+            --tron-dark: #0a0a0f;
+            --tron-darker: #050508;
+
+            /* Liquid Glass with Tron glow */
+            --clear-glass: rgba(0, 20, 30, 0.6);
+            --clear-glass-hover: rgba(0, 40, 60, 0.7);
+            --clear-glass-border: rgba(0, 212, 255, 0.4);
+            --blur-amount: 20px;
+
+            /* Using Tron cyan as accent */
+            --accent-green: #00d4ff;
+            --accent-green-dim: rgba(0, 212, 255, 0.25);
+
+            --text-primary: rgba(255, 255, 255, 0.95);
+            --text-secondary: rgba(0, 212, 255, 0.7);
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-full: 9999px;
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #000000;
+            color: var(--text-primary);
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ============================================
+           TRON ANIMATED BACKGROUND
+           ============================================ */
+
+        /* Dark background with grid */
+        .landscape-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            background:
+                /* Horizontal grid lines */
+                repeating-linear-gradient(0deg,
+                    transparent,
+                    transparent 80px,
+                    rgba(0, 212, 255, 0.03) 80px,
+                    rgba(0, 212, 255, 0.03) 81px),
+                /* Vertical grid lines */
+                repeating-linear-gradient(90deg,
+                    transparent,
+                    transparent 80px,
+                    rgba(0, 212, 255, 0.03) 80px,
+                    rgba(0, 212, 255, 0.03) 81px),
+                /* Base gradient */
+                radial-gradient(ellipse at center bottom, rgba(0, 40, 60, 0.3) 0%, #000000 70%);
+        }
+
+        /* Dotted Globe Canvas */
+        #globeCanvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 800px;
+            height: 800px;
+            opacity: 0.6;
+        }
+
+        /* Tron Aura Lights */
+        .aura-light {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            animation: auraFloat 12s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .aura-1 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.3) 0%, rgba(0, 212, 255, 0.1) 50%, transparent 70%);
+            top: 15%;
+            left: 5%;
+            animation-delay: 0s;
+        }
+
+        .aura-2 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(0, 180, 220, 0.3) 0%, rgba(0, 180, 220, 0.1) 50%, transparent 70%);
+            top: 55%;
+            right: 10%;
+            animation-delay: -3s;
+        }
+
+        .aura-3 {
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, rgba(0, 150, 200, 0.25) 0%, rgba(0, 150, 200, 0.08) 50%, transparent 70%);
+            bottom: 5%;
+            left: 20%;
+            animation-delay: -6s;
+        }
+
+        .aura-4 {
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(0, 100, 150, 0.2) 0%, rgba(0, 100, 150, 0.05) 50%, transparent 70%);
+            top: 25%;
+            right: 0%;
+            animation-delay: -4s;
+        }
+
+        @keyframes auraFloat {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.6;
+            }
+
+            25% {
+                transform: translate(30px, -20px) scale(1.1);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: translate(-20px, 30px) scale(0.95);
+                opacity: 0.5;
+            }
+
+            75% {
+                transform: translate(15px, 15px) scale(1.05);
+                opacity: 0.7;
+            }
+        }
+
+        /* Hover-reactive overlay */
+        .hover-reactive {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: radial-gradient(circle 300px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+                    rgba(52, 199, 89, 0.08) 0%,
+                    transparent 100%);
+            transition: opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        body:hover .hover-reactive {
+            opacity: 1;
+        }
+
+        /* Floating particles */
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: particleFloat 15s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-100vh) translateX(50px);
+                opacity: 0;
+            }
+        }
+
+        /* ============================================
+           CINEMATIC FLOAT-IN ANIMATIONS
+           ============================================ */
+
+        @keyframes floatInFromTop {
+            0% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-100px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        @keyframes floatInFromBottom {
+            0% {
+                opacity: 0;
+                transform: translateY(100px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulseGlow {
+
+            0%,
+            100% {
+                box-shadow: 0 8px 40px rgba(52, 199, 89, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            }
+
+            50% {
+                box-shadow: 0 8px 60px rgba(52, 199, 89, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            }
+        }
+
+        /* Remove old backgrounds - now using aura lights */
+        .sky,
+        .stars,
+        .star,
+        .mountains,
+        .mountain,
+        .mountain-main,
+        .mountain-left,
+        .mountain-right,
+        .mountain-far-1,
+        .mountain-far-2,
+        .horizon-glow,
+        .teal-glow {
+            display: none !important;
+        }
+
+
+
+        .clock-date {
+            font-size: 20px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.7);
+            letter-spacing: 4px;
+            text-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+
+        /* Clear transparent glass clock with Glitter Effect */
+        .clock-time {
+            font-size: clamp(150px, 28vw, 280px);
+            font-weight: 300;
+            letter-spacing: -4px;
+            line-height: 0.9;
+            color: transparent;
+            background: linear-gradient(135deg,
+                    rgba(255, 255, 255, 0.4) 0%,
+                    rgba(255, 255, 255, 0.1) 40%,
+                    rgba(255, 255, 255, 0.8) 50%,
+                    rgba(255, 255, 255, 0.1) 60%,
+                    rgba(255, 255, 255, 0.4) 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-stroke: 2px rgba(255, 255, 255, 0.4);
+            text-shadow:
+                0 4px 30px rgba(0, 0, 0, 0.3),
+                0 0 60px rgba(0, 212, 255, 0.2);
+            animation: glitter 4s linear infinite;
+        }
+
+        @keyframes glitter {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            100% {
+                background-position: 200% 50%;
+            }
+        }
+
+        /* Clock container - no box with float-in animation */
+        .clock-container {
+            position: absolute;
+            top: 12%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 4;
+            pointer-events: auto;
+            padding: 10px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            /* Cinematic float-in from top */
+            animation: floatInFromTop 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+            animation-delay: 0.2s;
+            opacity: 0;
+        }
+
+        .clock-container:hover {
+            transform: translateX(-50%) scale(1.02);
+        }
+
+        .clock-container:hover .clock-time {
+            -webkit-text-stroke: 2px rgba(255, 255, 255, 0.6);
+            background: linear-gradient(180deg,
+                    rgba(255, 255, 255, 0.35) 0%,
+                    rgba(255, 255, 255, 0.25) 50%,
+                    rgba(255, 255, 255, 0.15) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            text-shadow:
+                0 6px 40px rgba(0, 0, 0, 0.4),
+                0 0 80px rgba(255, 255, 255, 0.15);
+        }
+
+        .clock-container:hover .clock-date {
+            letter-spacing: 6px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        /* Main Container */
+        .container {
+            position: relative;
+            z-index: 10;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Transparent Clear Glass Header */
+        .header {
+            text-align: center;
+            padding: 20px 24px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(30px) saturate(120%);
+            -webkit-backdrop-filter: blur(30px) saturate(120%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 4px;
+            /* Glass/transparent text effect */
+            color: rgba(255, 255, 255, 0.85);
+            text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Chat Container */
+        .chat-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: var(--radius-full);
+        }
+
+        /* Footer Section with float-in animation */
+        .footer-section {
+            flex-shrink: 0;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 20px 30px;
+            /* Cinematic float-in from bottom */
+            animation: floatInFromBottom 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+            animation-delay: 0.6s;
+            opacity: 0;
+            transform: translateY(150px);
+            /* Start further down */
+        }
+
+        .browser-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Clear Glass Buttons */
+        .browser-btn {
+            padding: 14px 28px;
+            background: var(--clear-glass);
+            backdrop-filter: blur(var(--blur-amount)) saturate(150%);
+            -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(150%);
+            border: 1px solid var(--clear-glass-border);
+            border-radius: var(--radius-full);
+            color: var(--accent-green);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .browser-btn:hover {
+            background: var(--clear-glass-hover);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 32px rgba(52, 199, 89, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .browser-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        /* Clear Glass Input Wrapper */
+        .input-wrapper {
+            background: var(--clear-glass);
+            backdrop-filter: blur(var(--blur-amount)) saturate(150%);
+            -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(150%);
+            border: 1px solid var(--clear-glass-border);
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: rgba(52, 199, 89, 0.5);
+            box-shadow: 0 8px 40px rgba(52, 199, 89, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        /* Wrapper for Overlay Input */
+        .file-input-wrapper {
+            position: relative;
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        /* Overlay Input */
+        .file-input-wrapper input[type="file"] {
+            display: none !important;
+        }
+
+        /* Button Styling */
+        .file-button {
+            min-width: 70px;
+            height: 46px;
+            padding: 0 12px;
+            border-radius: var(--radius-sm);
+            background: var(--accent-green-dim);
+            border: 1px solid rgba(52, 199, 89, 0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            color: var(--accent-green);
+            font-weight: 500;
+        }
+
+        .file-button:hover {
+            background: rgba(52, 199, 89, 0.35);
+            transform: scale(1.05);
+        }
+
+        .file-button svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--accent-green);
+        }
+
+        /* Rounded Text Input */
+        #pathInput {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-full);
+            outline: none;
+            color: var(--text-primary);
+            font-size: 14px;
+            padding: 14px 22px;
+            transition: all 0.3s;
+        }
+
+        #pathInput:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(52, 199, 89, 0.4);
+        }
+
+        #pathInput::placeholder {
+            color: rgba(255, 255, 255, 0.35);
+        }
+
+        .submit-button {
+            width: 46px;
+            height: 46px;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, var(--accent-green), #2aa64a);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(52, 199, 89, 0.3);
+            flex-shrink: 0;
+        }
+
+        .submit-button:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 25px rgba(52, 199, 89, 0.5);
+        }
+
+        .submit-button svg {
+            width: 20px;
+            height: 20px;
+            stroke: white;
+            stroke-width: 2.5;
+        }
+
+        /* Modal - Clear Glass */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(20, 20, 30, 0.85);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 900px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            background: rgba(255, 59, 48, 0.15);
+            border: 1px solid rgba(255, 59, 48, 0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FF3B30;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 59, 48, 0.25);
+        }
+
+        .modal-body {
+            padding: 20px 24px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .modal-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: var(--radius-full);
+        }
+
+        .breadcrumb {
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-sm);
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .breadcrumb-item {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb-item:hover {
+            color: var(--accent-green);
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .file-item {
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-item:hover {
+            background: rgba(52, 199, 89, 0.08);
+            border-color: rgba(52, 199, 89, 0.2);
+            transform: translateX(4px);
+        }
+
+        .file-item.selected {
+            background: rgba(52, 199, 89, 0.12);
+            border-color: rgba(52, 199, 89, 0.3);
+        }
+
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .file-icon.folder {
+            background: rgba(255, 193, 7, 0.15);
+        }
+
+        .file-icon.file {
+            background: rgba(52, 199, 89, 0.15);
+        }
+
+        .file-info {
+            flex-grow: 1;
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: white;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .file-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .file-checkbox {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            border: 2px solid rgba(52, 199, 89, 0.3);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-checkbox.checked {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .selected-count {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: var(--radius-full);
+            border: 1px solid;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: rgba(52, 199, 89, 0.15);
+            border-color: rgba(52, 199, 89, 0.3);
+            color: var(--accent-green);
+        }
+
+        .btn-primary:hover {
+            background: rgba(52, 199, 89, 0.25);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Chat Messages */
+        .chat-message {
+            margin-bottom: 20px;
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-user {
+            background: rgba(52, 199, 89, 0.1);
+            border: 1px solid rgba(52, 199, 89, 0.2);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            margin-left: auto;
+            max-width: 80%;
+            backdrop-filter: blur(10px);
+        }
+
+        .message-assistant {
+            background: var(--clear-glass);
+            border: 1px solid var(--clear-glass-border);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            backdrop-filter: blur(var(--blur-amount));
+            max-width: 100%;
+        }
+
+        .detected-files-section,
+        .timing-section,
+        .api-section,
+        .pdf-section {
+            margin: 16px 0;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            backdrop-filter: blur(10px);
+        }
+
+        .pdf-section {
+            background: rgba(255, 149, 0, 0.08);
+            border-color: rgba(255, 149, 0, 0.2);
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-green);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title.pdf-title {
+            color: #FF9500;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .info-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .files-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        .files-table th {
+            text-align: left;
+            padding: 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .files-table td {
+            padding: 14px 12px;
+            font-size: 13px;
+            color: var(--text-primary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .files-table tr:hover {
+            background: rgba(52, 199, 89, 0.03);
+        }
+
+        .pdf-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            background: rgba(255, 149, 0, 0.15);
+            border: 1px solid rgba(255, 149, 0, 0.3);
+            border-radius: var(--radius-full);
+            font-size: 10px;
+            font-weight: 600;
+            color: #FF9500;
+            margin-left: 6px;
+        }
+
+        .output-file-section {
+            margin-top: 16px;
+            padding: 16px;
+            background: rgba(52, 199, 89, 0.08);
+            border: 1px solid rgba(52, 199, 89, 0.2);
+            border-radius: var(--radius-md);
+        }
+
+        .output-path {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 12px;
+            color: var(--text-primary);
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: var(--radius-sm);
+            margin: 10px 0;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            width: 100%;
+            padding: 12px;
+            background: rgba(52, 199, 89, 0.15);
+            border: 1px solid rgba(52, 199, 89, 0.25);
+            border-radius: var(--radius-sm);
+            color: var(--accent-green);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(52, 199, 89, 0.25);
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 20px;
+        }
+
+        .spinner {
+            width: 22px;
+            height: 22px;
+            border: 2px solid rgba(52, 199, 89, 0.2);
+            border-top-color: var(--accent-green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error-message {
+            background: rgba(255, 59, 48, 0.1);
+            border: 1px solid rgba(255, 59, 48, 0.2);
+            color: white;
+            padding: 16px;
+            border-radius: var(--radius-md);
+            margin-top: 12px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 18px;
+                letter-spacing: 2px;
+            }
+
+            .clock-time {
+                font-size: 80px;
+                letter-spacing: -4px;
+            }
+
+            .clock-date {
+                font-size: 16px;
+            }
+
+            .modal-content {
+                width: 95%;
+                max-height: 90vh;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .browser-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .browser-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Immersive Animated Background -->
+    <div class="landscape-bg">
+        <!-- Globe Canvas for dotted sphere animation -->
+        <canvas id="globeCanvas"></canvas>
+
+        <!-- Animated Aura Lights -->
+        <div class="aura-light aura-1"></div>
+        <div class="aura-light aura-2"></div>
+        <div class="aura-light aura-3"></div>
+        <div class="aura-light aura-4"></div>
+
+        <!-- Hover-reactive overlay -->
+        <div class="hover-reactive" id="hoverReactive"></div>
+
+        <!-- Floating particles container -->
+        <div id="particlesContainer"></div>
+
+        <!-- Clock floats in from top -->
+        <div class="clock-container">
+            <div class="clock-date" id="clockDate">Mon Jan 20</div>
+            <div class="clock-time" id="clockTime">21:58</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header" style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="flex: 1;"></div>
+            <div style="text-align: center;">
+                <div class="logo">UNIVERSAL DATA EXTRACTOR</div>
+                <div class="subtitle">AI-Powered PDF & Document Extraction with Cloud Storage</div>
+            </div>
+            <div style="flex: 1; display: flex; justify-content: flex-end;">
+                <button class="browser-btn" onclick="window.location.href='/review'"
+                    style="background: linear-gradient(135deg, rgba(175, 82, 222, 0.2), rgba(175, 82, 222, 0.1)); border-color: rgba(175, 82, 222, 0.3); color: #BF5AF2;">
+                    📋 Document Review
+                </button>
+            </div>
+        </div>
+
+        <div class="chat-container" id="chatContainer"></div>
+
+        <div class="footer-section">
+            <div class="browser-buttons">
+                <button class="browser-btn" onclick="openAzureBrowser()">
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                    </svg>
+                    Browse Azure Blob Storage
+                </button>
+                <button class="browser-btn" onclick="openLocalBrowser()">
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    Browse Local Files
+                </button>
+            </div>
+
+            <div class="input-wrapper">
+                <div class="input-row">
+                    <div class="file-input-wrapper">
+                        <input type="file" id="fileInput" multiple accept=".csv,.eml,.pdf,.xlsx,.xls,.docx,.doc"
+                            style="display: none;">
+                        <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;">
+
+                        <button class="file-button" onclick="document.getElementById('fileInput').click()"
+                            title="Upload files" style="margin-right: 8px;">
+                            <svg fill="none" viewBox="0 0 24 24" style="width: 20px; height: 20px;">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span style="margin-left: 4px; font-size: 12px;">Files</span>
+                        </button>
+
+                        <button class="file-button" onclick="document.getElementById('folderInput').click()"
+                            title="Upload folder">
+                            <svg fill="none" viewBox="0 0 24 24" style="width: 20px; height: 20px;">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                            </svg>
+                            <span style="margin-left: 4px; font-size: 12px;">Folder</span>
+                        </button>
+
+                        <span id="fileCounter"
+                            style="margin-left: 12px; color: var(--accent-green); font-size: 14px; font-weight: 500;"></span>
+                    </div>
+                    <input type="text" id="pathInput"
+                        placeholder="Paste file paths separated by comma (Azure blob URLs or local paths)...">
+                    <button class="submit-button" id="submitBtn" title="Process files">
+                        <svg fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Azure Modal -->
+    <div class="modal" id="azureModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                    </svg>
+                    Azure Blob Storage Browser
+                </div>
+                <button class="modal-close" onclick="closeAzureModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="breadcrumb" id="azureBreadcrumb"></div>
+                <div class="file-list" id="azureFileList"></div>
+            </div>
+            <div class="modal-footer">
+                <div class="selected-count" id="azureSelectedCount">0 files selected</div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeAzureModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="confirmAzureSelection()">Add Selected Files</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Local Modal -->
+    <div class="modal" id="localModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    Local File Browser
+                </div>
+                <button class="modal-close" onclick="closeLocalModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="breadcrumb" id="localBreadcrumb"></div>
+                <div class="file-list" id="localFileList"></div>
+            </div>
+            <div class="modal-footer">
+                <div class="selected-count" id="localSelectedCount">0 files selected</div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeLocalModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="confirmLocalSelection()">Add Selected Files</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Generate Stars
+        function generateStars() {
+            const container = document.getElementById('starsContainer');
+            if (!container) {
+                console.log('starsContainer not found, skipping star generation');
+                return;
+            }
+            for (let i = 0; i < 80; i++) {
+                const star = document.createElement('div');
+                star.className = 'star' + (Math.random() > 0.9 ? ' large' : '');
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 5 + 's';
+                star.style.animationDuration = (3 + Math.random() * 4) + 's';
+                container.appendChild(star);
+            }
+        }
+        generateStars();
+
+        // Clock Update
+        function updateClock() {
+            const now = new Date();
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+
+            document.getElementById('clockTime').textContent = `${hours}:${minutes}`;
+            document.getElementById('clockDate').textContent = `${days[now.getDay()]} ${months[now.getMonth()]} ${now.getDate()}`;
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // ============================================
+        // IMMERSIVE BACKGROUND ANIMATIONS
+        // ============================================
+
+        // Interactive Dotted Globe Animation
+        (function initGlobe() {
+            const canvas = document.getElementById('globeCanvas');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            let width = 800;
+            let height = 800;
+            canvas.width = width;
+            canvas.height = height;
+
+            const dots = [];
+            const numDots = 1000; // Slightly reduced for performance with connections
+            let rotationX = 0;
+            let rotationY = 0;
+            let targetRotationX = 0;
+            let targetRotationY = 0;
+            let time = 0;
+
+            // Mouse interaction
+            let mouseX = 0;
+            let mouseY = 0;
+            document.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX - window.innerWidth / 2) * 0.0005;
+                mouseY = (e.clientY - window.innerHeight / 2) * 0.0005;
+            });
+
+            // Create dots on sphere surface
+            for (let i = 0; i < numDots; i++) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                dots.push({
+                    theta,
+                    phi,
+                    x: 0, y: 0, z: 0,
+                    size: Math.random() * 1.5 + 0.5,
+                    baseAlpha: Math.random() * 0.5 + 0.1,
+                    pulsePhase: Math.random() * Math.PI * 2
+                });
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, width, height);
+                time += 0.01;
+
+                // Smooth rotation update
+                targetRotationY += 0.002 + mouseX * 0.1;
+                targetRotationX = mouseY * 0.1;
+
+                rotationY += (targetRotationY - rotationY) * 0.1;
+                rotationX += (targetRotationX - rotationX) * 0.1;
+
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const radius = 300;
+
+                // Update and draw dots
+                dots.forEach(dot => {
+                    // Spherical to Cartesian
+                    let x = radius * Math.sin(dot.phi) * Math.cos(dot.theta);
+                    let y = radius * Math.sin(dot.phi) * Math.sin(dot.theta);
+                    let z = radius * Math.cos(dot.phi);
+
+                    // Rotate around Y
+                    let x1 = x * Math.cos(rotationY) - z * Math.sin(rotationY);
+                    let z1 = z * Math.cos(rotationY) + x * Math.sin(rotationY);
+                    x = x1; z = z1;
+
+                    // Rotate around X (tilt)
+                    let y1 = y * Math.cos(rotationX) - z * Math.sin(rotationX);
+                    let z2 = z * Math.cos(rotationX) + y * Math.sin(rotationX);
+                    y = y1; z = z2;
+
+                    dot.x = x; dot.y = y; dot.z = z;
+
+                    // Only draw dots on visible hemisphere (or slightly behind for depth)
+                    if (z > -100) {
+                        const scale = (z + radius * 2) / (radius * 3); // Perspective scale
+                        const projX = centerX + x * scale;
+                        const projY = centerY + y * scale;
+
+                        // Periodic aura pulse
+                        const pulse = Math.sin(time * 2 + dot.phi * 3 + dot.theta * 2) * 0.5 + 0.5;
+                        const currentSize = dot.size * scale * (1 + pulse * 0.5);
+                        const currentAlpha = dot.baseAlpha + pulse * 0.3;
+
+                        ctx.beginPath();
+                        ctx.arc(projX, projY, currentSize, 0, Math.PI * 2);
+                        /* Tron cyan */
+                        ctx.fillStyle = `rgba(0, 212, 255, ${currentAlpha})`;
+                        ctx.fill();
+
+                        // Spreading "aura" ring occasionally
+                        if (pulse > 0.9) {
+                            ctx.beginPath();
+                            ctx.arc(projX, projY, currentSize * 3, 0, Math.PI * 2);
+                            ctx.strokeStyle = `rgba(0, 212, 255, ${(pulse - 0.9) * 0.5})`;
+                            ctx.stroke();
+                        }
+                    }
+                });
+
+                // Connect nearby dots (Network effect) - Optimized
+                // Only connect a random subset each frame to save performance or check distance
+                // For simplicity/performance, we'll skip complex n^2 connections and just do nearest neighbor approximation or random linkages
+                // Actually, let's just do a simple "constellation" effect for dots very close to the viewer
+                dots.forEach((dot, i) => {
+                    if (dot.z > 200 && i % 2 === 0) { // Only front-most dots
+                        dots.forEach((other, j) => {
+                            if (i !== j && other.z > 200 && j > i && j % 5 === 0) {
+                                const dx = dot.x - other.x;
+                                const dy = dot.y - other.y;
+                                if (Math.abs(dx) < 40 && Math.abs(dy) < 40) { // Quick distance check
+                                    const dist = Math.sqrt(dx * dx + dy * dy);
+                                    if (dist < 40) {
+                                        const scale = (dot.z + radius * 2) / (radius * 3);
+                                        const projX1 = centerX + dot.x * scale;
+                                        const projY1 = centerY + dot.y * scale;
+                                        const scale2 = (other.z + radius * 2) / (radius * 3);
+                                        const projX2 = centerX + other.x * scale2;
+                                        const projY2 = centerY + other.y * scale2;
+
+                                        ctx.beginPath();
+                                        ctx.moveTo(projX1, projY1);
+                                        ctx.lineTo(projX2, projY2);
+                                        ctx.strokeStyle = `rgba(0, 212, 255, ${0.15 * (1 - dist / 40)})`;
+                                        ctx.lineWidth = 0.5;
+                                        ctx.stroke();
+                                    }
+                                }
+                            }
+                        });
+                    }
+                });
+
+                requestAnimationFrame(animate);
+            }
+            animate();
+        })();
+
+        // Floating Particles
+        (function initParticles() {
+            const container = document.getElementById('particlesContainer');
+            if (!container) return;
+
+            const numParticles = 30;
+
+            for (let i = 0; i < numParticles; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = -(Math.random() * 15) + 's';
+                particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+                particle.style.opacity = Math.random() * 0.5 + 0.3;
+                container.appendChild(particle);
+            }
+        })();
+
+        // Hover-reactive overlay (follows mouse)
+        (function initHoverEffect() {
+            const overlay = document.getElementById('hoverReactive');
+            if (!overlay) return;
+
+            document.addEventListener('mousemove', (e) => {
+                const x = (e.clientX / window.innerWidth) * 100;
+                const y = (e.clientY / window.innerHeight) * 100;
+                overlay.style.setProperty('--mouse-x', x + '%');
+                overlay.style.setProperty('--mouse-y', y + '%');
+            });
+        })();
+
+        // Application Variables
+        const chatContainer = document.getElementById('chatContainer');
+        const submitBtn = document.getElementById('submitBtn');
+        const pathInput = document.getElementById('pathInput');
+        const fileInput = document.getElementById('fileInput');
+        const folderInput = document.getElementById('folderInput');
+        const fileCounter = document.getElementById('fileCounter');
+
+        // Debug: Check if elements exist
+        console.log('Elements found:', {
+            chatContainer: !!chatContainer,
+            submitBtn: !!submitBtn,
+            pathInput: !!pathInput,
+            fileInput: !!fileInput,
+            folderInput: !!folderInput,
+            fileCounter: !!fileCounter
+        });
+
+        let selectedAzureFiles = [];
+        let selectedLocalFiles = [];
+        let currentAzureContainer = null;
+        let currentAzurePrefix = '';
+        let currentLocalPath = null;
+
+        // File Input Event Handlers
+        fileInput.addEventListener('change', function (e) {
+            console.log('File input changed:', e.target.files.length, 'files');
+            updatePathDisplay();
+            updateFileCounter();
+            if (e.target.files.length > 0) {
+                const fileNames = Array.from(e.target.files).slice(0, 3).map(f => f.name).join(', ');
+                const more = e.target.files.length > 3 ? ` and ${e.target.files.length - 3} more...` : '';
+                addMessage('assistant', `✅ Files attached: ${e.target.files.length}\n${fileNames}${more}`);
+            }
+        });
+
+        folderInput.addEventListener('change', function (e) {
+            console.log('Folder input changed:', e.target.files.length, 'files');
+
+            // Create new FileList with combined files
+            const dt = new DataTransfer();
+
+            // Add existing files from fileInput
+            for (let i = 0; i < fileInput.files.length; i++) {
+                dt.items.add(fileInput.files[i]);
+            }
+
+            // Add files from folder (filter supported types)
+            for (let i = 0; i < e.target.files.length; i++) {
+                const file = e.target.files[i];
+                const ext = file.name.toLowerCase().split('.').pop();
+                if (['csv', 'eml', 'pdf', 'xlsx', 'xls', 'docx', 'doc'].includes(ext)) {
+                    dt.items.add(file);
+                }
+            }
+
+            // Update fileInput with merged files
+            fileInput.files = dt.files;
+
+            updatePathDisplay();
+            updateFileCounter();
+            if (dt.files.length > 0) {
+                const fileNames = Array.from(dt.files).slice(0, 3).map(f => f.name).join(', ');
+                const more = dt.files.length > 3 ? ` and ${dt.files.length - 3} more...` : '';
+                addMessage('assistant', `✅ Folder attached: ${dt.files.length} files\n${fileNames}${more}`);
+            }
+        });
+
+        function updateFileCounter() {
+            const total = fileInput.files.length + selectedAzureFiles.length + selectedLocalFiles.length;
+            if (total > 0) {
+                fileCounter.textContent = `📎 ${total} file${total > 1 ? 's' : ''} ready`;
+                fileCounter.style.display = 'inline';
+            } else {
+                fileCounter.textContent = '';
+                fileCounter.style.display = 'none';
+            }
+        }
+
+        async function openAzureBrowser() {
+            document.getElementById('azureModal').classList.add('active');
+            selectedAzureFiles = [];
+            currentAzureContainer = null;
+            currentAzurePrefix = '';
+
+            // Show loading state
+            const fileList = document.getElementById('azureFileList');
+            fileList.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);">Loading containers...</div>';
+
+            try {
+                const response = await fetch('/api/blob/containers');
+                const result = await response.json();
+
+                if (result.success && result.containers && result.containers.length > 0) {
+                    displayAzureContainers(result.containers);
+                } else {
+                    fileList.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);">No containers found or Azure Blob Storage not configured.<br><br>Check your .env file for AZURE_STORAGE_CONNECTION_STRING</div>';
+                }
+            } catch (error) {
+                console.error('Azure browser error:', error);
+                fileList.innerHTML = '<div style="text-align: center; padding: 40px; color: #ff6b6b;">Failed to load Azure containers:<br>' + error.message + '</div>';
+            }
+        }
+
+        function displayAzureContainers(containers) {
+            const breadcrumb = document.getElementById('azureBreadcrumb');
+            breadcrumb.innerHTML = '<span>📦 Containers</span>';
+
+            const fileList = document.getElementById('azureFileList');
+            fileList.innerHTML = '';
+
+            containers.forEach(container => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <div class="file-icon folder">
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#FFC107">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                        </svg>
+                    </div>
+                    <div class="file-info">
+                        <div class="file-name">${container}</div>
+                        <div class="file-meta">Container</div>
+                    </div>
+                `;
+                item.onclick = () => browseAzureContainer(container);
+                fileList.appendChild(item);
+            });
+        }
+
+        async function browseAzureContainer(container, prefix = '') {
+            currentAzureContainer = container;
+            currentAzurePrefix = prefix;
+
+            try {
+                const response = await fetch('/api/blob/browse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ container, prefix })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayAzurePath(result);
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Failed to browse path: ' + error.message);
+            }
+        }
+
+        function displayAzurePath(data) {
+            const breadcrumb = document.getElementById('azureBreadcrumb');
+            const parts = data.current_path.split('/');
+
+            breadcrumb.innerHTML = `
+                <span class="breadcrumb-item" onclick="openAzureBrowser()">📦 Containers</span>
+                <span>/</span>
+            `;
+
+            parts.forEach((part, index) => {
+                if (index === 0) {
+                    breadcrumb.innerHTML += `<span class="breadcrumb-item" onclick="browseAzureContainer('${part}')">${part}</span>`;
+                } else {
+                    const prefix = parts.slice(1, index + 1).join('/');
+                    breadcrumb.innerHTML += `<span>/</span><span class="breadcrumb-item" onclick="browseAzureContainer('${parts[0]}', '${prefix}/')">${part}</span>`;
+                }
+            });
+
+            const fileList = document.getElementById('azureFileList');
+            fileList.innerHTML = '';
+
+            if (currentAzurePrefix) {
+                const backItem = document.createElement('div');
+                backItem.className = 'file-item';
+                backItem.innerHTML = `
+                    <div class="file-icon folder">
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#FFC107">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                    </div>
+                    <div class="file-info">
+                        <div class="file-name">.. (Go Back)</div>
+                    </div>
+                `;
+                backItem.onclick = () => {
+                    const parts = currentAzurePrefix.split('/').filter(p => p);
+                    parts.pop();
+                    const newPrefix = parts.join('/') + (parts.length > 0 ? '/' : '');
+                    browseAzureContainer(currentAzureContainer, newPrefix);
+                };
+                fileList.appendChild(backItem);
+            }
+
+            if (data.folders) {
+                data.folders.forEach(folder => {
+                    const item = document.createElement('div');
+                    item.className = 'file-item';
+                    item.innerHTML = `
+                        <div class="file-icon folder">
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#FFC107">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="file-info">
+                            <div class="file-name">${folder.name}</div>
+                            <div class="file-meta">Folder</div>
+                        </div>
+                    `;
+                    item.onclick = () => browseAzureContainer(currentAzureContainer, folder.prefix);
+                    fileList.appendChild(item);
+                });
+            }
+
+            if (data.files) {
+                data.files.forEach(file => {
+                    const isSelected = selectedAzureFiles.some(f => f.name === file.name);
+                    const item = document.createElement('div');
+                    item.className = 'file-item' + (isSelected ? ' selected' : '');
+                    item.innerHTML = `
+                        <div class="file-icon file">
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="${'#34C759'}">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="file-info">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-meta">${formatSize(file.size)}</div>
+                        </div>
+                        <div class="file-checkbox ${isSelected ? 'checked' : ''}"></div>
+                    `;
+                    item.onclick = () => toggleAzureFile(file, item);
+                    fileList.appendChild(item);
+                });
+            }
+        }
+
+        function toggleAzureFile(file, element) {
+            const index = selectedAzureFiles.findIndex(f => f.name === file.name);
+            if (index > -1) {
+                selectedAzureFiles.splice(index, 1);
+                element.classList.remove('selected');
+                element.querySelector('.file-checkbox').classList.remove('checked');
+            } else {
+                selectedAzureFiles.push(file);
+                element.classList.add('selected');
+                element.querySelector('.file-checkbox').classList.add('checked');
+            }
+            document.getElementById('azureSelectedCount').textContent = `${selectedAzureFiles.length} files selected`;
+        }
+
+        function closeAzureModal() {
+            document.getElementById('azureModal').classList.remove('active');
+        }
+
+        function confirmAzureSelection() {
+            updatePathDisplay();
+            updateFileCounter();
+            closeAzureModal();
+        }
+
+        async function openLocalBrowser() {
+            document.getElementById('localModal').classList.add('active');
+            selectedLocalFiles = [];
+            currentLocalPath = null;
+
+            // Show loading state
+            const fileList = document.getElementById('localFileList');
+            fileList.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);">Loading files...</div>';
+
+            try {
+                const response = await fetch('http://localhost:5000/api/local/browse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentLocalPath = result.current_path;
+                    displayLocalPath(result);
+                } else {
+                    fileList.innerHTML = '<div style="text-align: center; padding: 40px; color: #ff6b6b;">Error: ' + result.error + '</div>';
+                }
+            } catch (error) {
+                console.error('Local browser error:', error);
+                fileList.innerHTML = '<div style="text-align: center; padding: 40px; color: #ff6b6b;">Failed to browse local files:<br>' + error.message + '</div>';
+            }
+        }
+
+        function displayLocalPath(data) {
+            currentLocalPath = data.current_path;
+
+            const breadcrumb = document.getElementById('localBreadcrumb');
+            breadcrumb.innerHTML = `<span class="breadcrumb-item">📁 ${data.current_path}</span>`;
+
+            const fileList = document.getElementById('localFileList');
+            fileList.innerHTML = '';
+
+            if (data.parent_path) {
+                const backItem = document.createElement('div');
+                backItem.className = 'file-item';
+                backItem.innerHTML = `
+                    <div class="file-icon folder">
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#FFC107">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                    </div>
+                    <div class="file-info">
+                        <div class="file-name">.. (Go Back)</div>
+                    </div>
+                `;
+                backItem.onclick = () => browseLocalPath(data.parent_path);
+                fileList.appendChild(backItem);
+            }
+
+            if (data.folders) {
+                data.folders.forEach(folder => {
+                    const item = document.createElement('div');
+                    item.className = 'file-item';
+                    item.innerHTML = `
+                        <div class="file-icon folder">
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#FFC107">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="file-info">
+                            <div class="file-name">${folder.name}</div>
+                            <div class="file-meta">Folder</div>
+                        </div>
+                    `;
+                    item.onclick = () => browseLocalPath(folder.path);
+                    fileList.appendChild(item);
+                });
+            }
+
+            if (data.files) {
+                data.files.forEach(file => {
+                    const isSelected = selectedLocalFiles.some(f => f.path === file.path);
+                    const item = document.createElement('div');
+                    item.className = 'file-item' + (isSelected ? ' selected' : '');
+                    item.innerHTML = `
+                        <div class="file-icon file">
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#34C759">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="file-info">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-meta">${formatSize(file.size)}</div>
+                        </div>
+                        <div class="file-checkbox ${isSelected ? 'checked' : ''}"></div>
+                    `;
+                    item.onclick = () => toggleLocalFile(file, item);
+                    fileList.appendChild(item);
+                });
+            }
+        }
+
+        async function browseLocalPath(path) {
+            try {
+                const response = await fetch('/api/local/browse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayLocalPath(result);
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Failed to browse path: ' + error.message);
+            }
+        }
+
+        function toggleLocalFile(file, element) {
+            const index = selectedLocalFiles.findIndex(f => f.path === file.path);
+            if (index > -1) {
+                selectedLocalFiles.splice(index, 1);
+                element.classList.remove('selected');
+                element.querySelector('.file-checkbox').classList.remove('checked');
+            } else {
+                selectedLocalFiles.push(file);
+                element.classList.add('selected');
+                element.querySelector('.file-checkbox').classList.add('checked');
+            }
+            document.getElementById('localSelectedCount').textContent = `${selectedLocalFiles.length} files selected`;
+        }
+
+        function closeLocalModal() {
+            document.getElementById('localModal').classList.remove('active');
+        }
+
+        function confirmLocalSelection() {
+            updatePathDisplay();
+            updateFileCounter();
+            closeLocalModal();
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function updatePathDisplay() {
+            let parts = [];
+            let fileNames = [];
+
+            if (fileInput.files.length > 0) {
+                parts.push(`Uploaded: ${fileInput.files.length} files`);
+                // Show first 3 file names
+                for (let i = 0; i < Math.min(3, fileInput.files.length); i++) {
+                    fileNames.push(fileInput.files[i].name);
+                }
+                if (fileInput.files.length > 3) {
+                    fileNames.push(`... and ${fileInput.files.length - 3} more`);
+                }
+            }
+
+            if (selectedAzureFiles.length > 0) {
+                const count = selectedAzureFiles.length;
+                parts.push(`Azure: ${count} file${count > 1 ? 's' : ''}`);
+            }
+
+            if (selectedLocalFiles.length > 0) {
+                const count = selectedLocalFiles.length;
+                parts.push(`Local: ${count} file${count > 1 ? 's' : ''}`);
+            }
+
+            if (parts.length > 0) {
+                pathInput.value = parts.join(' | ');
+                pathInput.title = fileNames.join('\n'); // Show full list on hover
+            } else {
+                pathInput.value = '';
+                pathInput.title = '';
+            }
+        }
+
+        // Submit Handler
+        // Submit Handler
+        submitBtn.addEventListener('click', async () => {
+            const path = pathInput.value.trim();
+            const hasAzureFiles = selectedAzureFiles.length > 0;
+            const hasLocalFiles = selectedLocalFiles.length > 0;
+            const hasUploadedFiles = fileInput.files.length > 0;
+
+            // Parse manual paths if not just a status message
+            let manualPaths = [];
+            const isStatusMessage = path.startsWith('Uploaded:') || path.startsWith('Azure:') || path.startsWith('Local:');
+
+            if (!isStatusMessage && path.length > 0) {
+                // Split by comma or pipe (since we use pipe for display, might be safe to split by comma as placeholder says)
+                manualPaths = path.split(',').map(p => p.trim()).filter(p => p);
+            }
+
+            if (!manualPaths.length && !hasAzureFiles && !hasLocalFiles && !hasUploadedFiles) {
+                alert('Please select files or enter a path');
+                return;
+            }
+
+            addMessage('user', `Processing: ${path}`);
+            addLoadingMessage();
+
+            try {
+                // Use the parallel processing endpoint
+                const endpoint = '/api/process/parallel';
+
+                // Construct the JSON data payload
+                const jsonPayload = {
+                    blobFiles: hasAzureFiles ? selectedAzureFiles.map(f => ({
+                        container: currentAzureContainer,
+                        name: f.name,
+                        size: f.size || 0
+                    })) : [],
+                    filePaths: hasLocalFiles ? selectedLocalFiles.map(f => f.path) : []
+                };
+
+                // Add manually entered paths
+                if (manualPaths.length > 0) {
+                    jsonPayload.filePaths.push(...manualPaths);
+                }
+
+                // Add container/prefix info for Azure files
+                if (hasAzureFiles && currentAzureContainer) {
+                    jsonPayload.container = currentAzureContainer;
+                    jsonPayload.prefix = currentAzurePrefix;
+                }
+
+                if (hasUploadedFiles) {
+                    // Use FormData for mixed content (Files + JSON)
+                    const formData = new FormData();
+                    const files = fileInput.files;
+                    for (let i = 0; i < files.length; i++) {
+                        formData.append('files', files[i]);
+                    }
+
+                    // Append JSON data as a string field
+                    formData.append('data', JSON.stringify(jsonPayload));
+
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    removeLoadingMessage();
+                    addResultMessage(result);
+                    return;
+                }
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(jsonPayload)
+                });
+
+                const result = await response.json();
+                removeLoadingMessage();
+                addResultMessage(result);
+            } catch (error) {
+                removeLoadingMessage();
+                addErrorMessage(error.message);
+            }
+        });
+
+        function addMessage(type, content) {
+            const div = document.createElement('div');
+            div.className = `chat-message message-${type}`;
+            div.innerHTML = `<div class="section-title" style="color: ${type === 'user' ? 'var(--accent-green)' : 'white'}">YOUR INPUT</div><p>${content}</p>`;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addLoadingMessage() {
+            const div = document.createElement('div');
+            div.className = 'chat-message message-assistant';
+            div.id = 'loadingMessage';
+            div.innerHTML = `<div class="loading"><div class="spinner"></div><span>Processing documents with Azure AI...</span></div>`;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function removeLoadingMessage() {
+            const el = document.getElementById('loadingMessage');
+            if (el) el.remove();
+        }
+
+        function addResultMessage(result) {
+            const div = document.createElement('div');
+            div.className = 'chat-message message-assistant';
+
+            if (result.success) {
+                // Generate file stats table rows with detailed info
+                let statsRows = '';
+                let docList = result.stats?.detailedFiles || [];
+
+                // Fallback: build from result.data if detailedFiles not provided
+                if (docList.length === 0 && result.data) {
+                    Object.entries(result.data).forEach(([filename, data]) => {
+                        if (filename === '_EXTRACTION_METADATA') return;
+                        const meta = data._metadata || {};
+                        docList.push({
+                            name: filename,
+                            type: filename.toUpperCase().endsWith('.PDF') ? 'PDF' : 'DOC',
+                            size: 0,
+                            location: '',
+                            processing_time: meta.processing_time || 0,
+                            api_calls: meta.api_calls || {},
+                            success: meta.success !== false
+                        });
+                    });
+                }
+
+                docList.forEach(doc => {
+                    const isPdf = doc.type === 'PDF' || doc.name?.toLowerCase().endsWith('.pdf');
+                    const typeTag = isPdf
+                        ? '<span style="background: linear-gradient(135deg, #FF3B30, #FF6B6B); padding: 2px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold;">PDF</span>'
+                        : `<span style="background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 0.75em;">${doc.type || 'FILE'}</span>`;
+
+                    const sizeFormatted = doc.size ? (doc.size > 1024 * 1024
+                        ? (doc.size / (1024 * 1024)).toFixed(2) + ' MB'
+                        : doc.size > 1024
+                            ? (doc.size / 1024).toFixed(1) + ' KB'
+                            : doc.size + ' B') : 'N/A';
+
+                    const time = doc.processing_time ? `${doc.processing_time.toFixed(2)}s` : 'N/A';
+                    const docIntCalls = doc.api_calls?.document_intelligence || 0;
+                    const openaiCalls = doc.api_calls?.openai || 0;
+                    const status = doc.success !== false
+                        ? '<span style="color: #34C759">✓ Success</span>'
+                        : '<span style="color: #FF3B30">✗ Failed</span>';
+
+                    statsRows += `
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <div style="font-weight: 500;">${doc.name}</div>
+                                <div style="font-size: 0.75em; color: rgba(255,255,255,0.5); max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${doc.location || ''}</div>
+                            </td>
+                            <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${typeTag}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${sizeFormatted}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${docIntCalls}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${openaiCalls}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${time}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${status}</td>
+                        </tr>
+                    `;
+                });
+
+                div.innerHTML = `
+                    <div class="section-title">✓ Processing Complete</div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Files Processed</div>
+                            <div class="info-value">${result.stats ? result.stats.totalFiles : (result.files_processed || 0)}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Time Taken</div>
+                            <div class="info-value">${result.stats ? result.stats.processingTime + 's' : (result.time_taken || 'N/A')}</div>
+                        </div>
+                    </div>
+                    ${result.outputFile ? `
+                        <div class="output-file-section">
+                            <div class="section-title">Output File</div>
+                            <div class="output-path">${result.outputFile}</div>
+                            <button class="copy-btn" onclick="navigator.clipboard.writeText('${result.outputFile.replace(/\\/g, '\\\\')}')">📋 Copy Path</button>
+                        </div>
+                    ` : ''}
+                    
+                    ${statsRows ? `
+                        <div style="margin-top: 20px; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; border: 1px solid rgba(255,255,255,0.1);">
+                            <div class="section-title" style="margin-bottom: 10px; font-size: 0.9em;">Detailed Statistics</div>
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.85em; text-align: left; color: rgba(255,255,255,0.8);">
+                                <thead>
+                                    <tr>
+                                        <th style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">File</th>
+                                        <th style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">Type</th>
+                                        <th style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">Size</th>
+                                        <th style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">Doc Intel</th>
+                                        <th style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">OpenAI</th>
+                                        <th style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">Time</th>
+                                        <th style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${statsRows}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : ''}
+
+                    <div style="margin-top: 16px; display: flex; gap: 12px;">
+                        <button class="browser-btn" onclick="window.location.href='/review'" 
+                            style="background: linear-gradient(135deg, rgba(52, 199, 89, 0.3), rgba(52, 199, 89, 0.1)); border-color: rgba(52, 199, 89, 0.4); animation: pulse 2s infinite;">
+                            ✓ Review & Approve Results
+                        </button>
+                    </div>
+                `;
+            } else {
+                div.innerHTML = `<div class="error-message">${result.error || 'An error occurred'}</div>`;
+            }
+
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addErrorMessage(message) {
+            const div = document.createElement('div');
+            div.className = 'chat-message message-assistant';
+            div.innerHTML = `<div class="error-message">Error: ${message}</div>`;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    </script>
+</body>
+
+</html>

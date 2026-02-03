@@ -1,0 +1,2611 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Manual Review Application</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --liquid-glass: rgba(255, 255, 255, 0.12);
+            --liquid-glass-hover: rgba(255, 255, 255, 0.18);
+            --liquid-glass-active: rgba(255, 255, 255, 0.25);
+            --liquid-border: rgba(255, 255, 255, 0.2);
+            --liquid-border-light: rgba(255, 255, 255, 0.08);
+            --liquid-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            --liquid-shadow-elevated: 0 20px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            --blur-amount: 40px;
+            --blur-light: 20px;
+
+            --accent-primary: #007AFF;
+            --accent-green: #34C759;
+            --accent-red: #FF3B30;
+            --accent-orange: #FF9500;
+            --accent-purple: #AF52DE;
+
+            --text-primary: rgba(255, 255, 255, 0.95);
+            --text-secondary: rgba(255, 255, 255, 0.6);
+            --text-tertiary: rgba(255, 255, 255, 0.4);
+
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --radius-full: 9999px;
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a1a;
+            color: var(--text-primary);
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Mountain Landscape Background */
+        .landscape-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .sky {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg,
+                    #0d0d1a 0%, #1a1025 10%, #2a1530 20%,
+                    #4a2040 30%, #7a3050 40%, #a84060 48%,
+                    #d86040 55%, #f08050 60%, #ffa060 65%,
+                    #2a4060 75%, #1a3050 85%, #0a1520 100%);
+        }
+
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40%;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 4s ease-in-out infinite;
+        }
+
+        .star.large {
+            width: 3px;
+            height: 3px;
+        }
+
+        @keyframes twinkle {
+
+            0%,
+            100% {
+                opacity: 0.2;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        .mountains {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .mountain {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .mountain-main {
+            height: 50%;
+            background: linear-gradient(135deg, #1a1a2a 0%, #0a0a12 40%, #050508 100%);
+            clip-path: polygon(0% 100%, 0% 60%, 5% 55%, 10% 48%, 15% 42%, 18% 38%, 20% 32%, 22% 28%, 24% 22%, 26% 18%, 28% 12%, 29% 8%, 30% 5%, 31% 8%, 32% 15%, 34% 22%, 36% 30%, 38% 38%, 40% 45%, 42% 52%, 45% 58%, 48% 65%, 50% 70%, 55% 75%, 60% 80%, 100% 80%, 100% 100%);
+            z-index: 5;
+        }
+
+        .mountain-left {
+            height: 45%;
+            background: linear-gradient(160deg, #2a2a3a 0%, #15151f 50%, #0a0a10 100%);
+            clip-path: polygon(0% 100%, 0% 80%, 50% 80%, 55% 75%, 60% 68%, 65% 60%, 68% 52%, 70% 45%, 72% 38%, 74% 30%, 75% 22%, 76% 15%, 77% 10%, 78% 6%, 79% 10%, 80% 18%, 82% 28%, 85% 40%, 88% 52%, 92% 62%, 96% 72%, 100% 80%, 100% 100%);
+            z-index: 4;
+        }
+
+        .horizon-glow {
+            position: absolute;
+            bottom: 25%;
+            left: -10%;
+            width: 60%;
+            height: 40%;
+            background: radial-gradient(ellipse at 30% 80%, rgba(255, 160, 60, 0.5) 0%, rgba(255, 100, 50, 0.3) 30%, transparent 70%);
+            z-index: 0;
+        }
+
+        .teal-glow {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 35%;
+            background: linear-gradient(0deg, rgba(30, 80, 100, 0.4) 0%, rgba(40, 100, 120, 0.2) 50%, transparent 100%);
+            z-index: 0;
+        }
+
+        /* iOS 26 Liquid Glass Panel */
+        .liquid-glass {
+            background: var(--liquid-glass);
+            backdrop-filter: blur(var(--blur-amount)) saturate(180%);
+            -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(180%);
+            border: 1px solid var(--liquid-border);
+            box-shadow: var(--liquid-shadow);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .liquid-glass:hover {
+            background: var(--liquid-glass-hover);
+            box-shadow: var(--liquid-shadow-elevated);
+        }
+
+        /* Liquid Glass Button */
+        .liquid-btn {
+            background: var(--liquid-glass);
+            backdrop-filter: blur(var(--blur-light)) saturate(150%);
+            -webkit-backdrop-filter: blur(var(--blur-light)) saturate(150%);
+            border: 1px solid var(--liquid-border);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .liquid-btn:hover {
+            background: var(--liquid-glass-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .liquid-btn:active {
+            transform: translateY(0) scale(0.98);
+            background: var(--liquid-glass-active);
+        }
+
+        .liquid-btn.accent {
+            background: linear-gradient(135deg, rgba(0, 122, 255, 0.5), rgba(0, 122, 255, 0.3));
+            border-color: rgba(0, 122, 255, 0.4);
+        }
+
+        .liquid-btn.success {
+            background: linear-gradient(135deg, rgba(52, 199, 89, 0.5), rgba(52, 199, 89, 0.3));
+            border-color: rgba(52, 199, 89, 0.4);
+        }
+
+        .liquid-btn.danger {
+            background: linear-gradient(135deg, rgba(255, 59, 48, 0.5), rgba(255, 59, 48, 0.3));
+            border-color: rgba(255, 59, 48, 0.4);
+        }
+
+        /* iOS Toggle Switch */
+        .ios-toggle {
+            position: relative;
+            width: 51px;
+            height: 31px;
+            flex-shrink: 0;
+        }
+
+        .ios-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .ios-toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(120, 120, 128, 0.32);
+            backdrop-filter: blur(10px);
+            border-radius: 31px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+        }
+
+        .ios-toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 27px;
+            height: 27px;
+            left: 2px;
+            bottom: 2px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .ios-toggle input:checked+.ios-toggle-slider {
+            background: var(--accent-green);
+        }
+
+        .ios-toggle input:checked+.ios-toggle-slider::before {
+            transform: translateX(20px);
+        }
+
+        .ios-toggle input:focus+.ios-toggle-slider {
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3);
+        }
+
+        /* Main App Container */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .header-glass {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(50px) saturate(180%);
+            -webkit-backdrop-filter: blur(50px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .file-info {
+            font-size: 13px;
+            color: var(--text-secondary);
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-full);
+        }
+
+        .header-center {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-pill {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-full);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-full);
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .file-counter {
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .progress-pill {
+            width: 100px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-purple));
+            border-radius: var(--radius-full);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-full);
+            transition: all 0.3s;
+        }
+
+        .search-pill:focus-within {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+        }
+
+        .search-pill input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 14px;
+            width: 150px;
+        }
+
+        .search-pill input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .search-icon {
+            color: var(--text-tertiary);
+            font-size: 14px;
+        }
+
+        .filter-select {
+            padding: 8px 14px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-full);
+            color: var(--text-primary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-select:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            padding: 16px;
+            gap: 16px;
+        }
+
+        /* PDF Pane */
+        .pdf-pane {
+            flex: 0 0 60%;
+            display: flex;
+            flex-direction: column;
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            min-width: 400px;
+        }
+
+        .pdf-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            gap: 12px;
+            flex-wrap: wrap;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-md);
+        }
+
+        .toolbar-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-sm);
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .toolbar-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .toolbar-btn.active {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .zoom-select {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 6px 8px;
+        }
+
+        .zoom-select option {
+            background: #1c1c1e;
+        }
+
+        .page-input {
+            width: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            padding: 6px 8px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .page-info {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .pdf-viewport {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .pdf-viewport::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .pdf-viewport::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-full);
+        }
+
+        #pdfCanvas {
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            background: white;
+        }
+
+        .pdf-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            gap: 20px;
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Resizer */
+        .resizer {
+            width: 8px;
+            background: transparent;
+            cursor: col-resize;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .resizer::before {
+            content: '';
+            width: 4px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: var(--radius-full);
+            transition: all 0.2s;
+        }
+
+        .resizer:hover::before,
+        .resizer.active::before {
+            background: var(--accent-primary);
+            height: 60px;
+        }
+
+        /* Inspector Pane */
+        .inspector-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            min-width: 360px;
+        }
+
+        .tab-nav {
+            display: flex;
+            padding: 12px 12px 0;
+            gap: 4px;
+            background: rgba(0, 0, 0, 0.2);
+            overflow-x: auto;
+        }
+
+        .tab-nav::-webkit-scrollbar {
+            height: 0;
+        }
+
+        .tab-btn {
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .tab-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: var(--radius-full);
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        textarea.form-input {
+            min-height: 120px;
+            resize: vertical;
+            font-family: inherit;
+            line-height: 1.5;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        /* Liquid Glass Cards */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            margin-bottom: 16px;
+            transition: all 0.3s;
+        }
+
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple));
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .prop-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .prop-row:last-child {
+            border-bottom: none;
+        }
+
+        .prop-name {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .prop-value {
+            font-size: 13px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .status-pending {
+            background: rgba(255, 149, 0, 0.2);
+            color: var(--accent-orange);
+        }
+
+        .status-approved {
+            background: rgba(52, 199, 89, 0.2);
+            color: var(--accent-green);
+        }
+
+        .status-rejected {
+            background: rgba(255, 59, 48, 0.2);
+            color: var(--accent-red);
+        }
+
+        /* Page Grid */
+        .page-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 10px;
+        }
+
+        .page-thumb {
+            aspect-ratio: 0.7;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid transparent;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .page-thumb:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .page-thumb.current {
+            border-color: var(--accent-primary);
+            background: rgba(0, 122, 255, 0.2);
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toast {
+            padding: 14px 20px;
+            background: rgba(30, 30, 30, 0.9);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            color: var(--text-primary);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: toastIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .toast.success {
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .toast.error {
+            border-left: 3px solid var(--accent-red);
+        }
+
+        @keyframes toastIn {
+            from {
+                transform: translateX(100%) scale(0.8);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Toggle Row */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .toggle-row:last-child {
+            border-bottom: none;
+        }
+
+        .toggle-label {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .toggle-description {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-top: 2px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .pdf-pane,
+            .inspector-pane {
+                flex: 1;
+                min-width: unset;
+            }
+
+            .resizer {
+                width: 100%;
+                height: 8px;
+                cursor: row-resize;
+            }
+
+            .resizer::before {
+                width: 40px;
+                height: 4px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 10px 12px;
+            }
+
+            .header-left .file-info {
+                display: none;
+            }
+
+            .search-pill input {
+                width: 100px;
+            }
+
+            .main-content {
+                padding: 10px;
+                gap: 10px;
+            }
+        }
+
+        /* Formatting Toolbar Styles */
+        .formatting-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: var(--radius-md);
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .format-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-sm);
+        }
+
+        .format-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            padding: 6px 10px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .format-select option {
+            background: #1c1c1e;
+        }
+
+        .format-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-sm);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .format-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .format-btn.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .format-divider {
+            width: 1px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.15);
+            margin: 0 4px;
+        }
+
+        .color-picker-wrapper {
+            position: relative;
+        }
+
+        .color-picker-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .color-picker-btn input[type="color"] {
+            width: 150%;
+            height: 150%;
+            border: none;
+            cursor: pointer;
+            transform: translate(-15%, -15%);
+        }
+
+        /* Text Layer Overlay */
+        .pdf-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .text-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            pointer-events: auto;
+            opacity: 0.3;
+            mix-blend-mode: multiply;
+        }
+
+        .text-layer.editing {
+            opacity: 1;
+        }
+
+        .text-layer span {
+            position: absolute;
+            cursor: text;
+            white-space: pre;
+            color: transparent;
+            transition: all 0.2s;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+
+        .text-layer span:hover {
+            background: rgba(0, 122, 255, 0.25);
+            color: #333;
+        }
+
+        .text-layer span.selected {
+            background: rgba(0, 122, 255, 0.4);
+            color: #000;
+        }
+
+        .text-layer span[data-edited="true"] {
+            background: rgba(52, 199, 89, 0.4) !important;
+            color: #000 !important;
+        }
+
+        /* Inline Editor */
+        .inline-editor {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.98);
+            border: 2px solid var(--accent-primary);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-family: inherit;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            min-width: 120px;
+            outline: none;
+            color: #000;
+            z-index: 1000;
+            resize: none;
+            overflow: hidden;
+        }
+
+        .inline-editor-toolbar {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            display: flex;
+            gap: 4px;
+            padding: 6px;
+            background: rgba(30, 30, 30, 0.95);
+            border-radius: var(--radius-sm);
+            margin-bottom: 4px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .inline-editor-toolbar button {
+            padding: 4px 8px;
+            font-size: 11px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .inline-editor-toolbar button:hover {
+            background: var(--accent-primary);
+        }
+
+        /* Undo/Redo Buttons */
+        .history-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .history-btn {
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+
+        .history-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .history-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Click to Add Text Overlay */
+        .add-text-mode .pdf-viewport {
+            cursor: crosshair;
+        }
+
+        .floating-text-input {
+            position: fixed;
+            z-index: 1001;
+            background: white;
+            border: 2px solid var(--accent-primary);
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+            min-width: 250px;
+        }
+
+        .floating-text-input textarea {
+            width: 100%;
+            min-height: 80px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 8px;
+        }
+
+        .floating-text-input .btn-row {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .floating-text-input button {
+            padding: 6px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .floating-text-input .btn-confirm {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .floating-text-input .btn-cancel {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        /* Preview indicator */
+        .preview-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 122, 255, 0.9);
+            color: white;
+            padding: 4px 10px;
+            border-radius: var(--radius-full);
+            font-size: 11px;
+            font-weight: 600;
+            z-index: 10;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Mountain Landscape Background -->
+    <div class="landscape-bg">
+        <div class="sky"></div>
+        <div class="horizon-glow"></div>
+        <div class="teal-glow"></div>
+        <div class="stars" id="starsContainer"></div>
+        <div class="mountains">
+            <div class="mountain mountain-left"></div>
+            <div class="mountain mountain-main"></div>
+        </div>
+    </div>
+
+    <!-- Hidden file input for browsing PDFs -->
+    <input type="file" id="pdfFileInput" accept=".pdf" style="display: none;" multiple>
+
+    <div class="app-container">
+        <header class="header header-glass">
+            <div class="header-left">
+                <div class="logo">PDF Review</div>
+                <button class="liquid-btn accent" id="browseBtn"
+                    onclick="document.getElementById('pdfFileInput').click()">📁 Browse PDF</button>
+                <div class="file-info" id="fileInfo">No file loaded</div>
+            </div>
+            <div class="header-center">
+                <div class="nav-pill">
+                    <button class="nav-btn" id="prevBtn" title="Previous (Ctrl+←)">◀</button>
+                    <div class="file-counter"><span id="currentIndex">0</span> / <span id="totalFiles">0</span></div>
+                    <button class="nav-btn" id="nextBtn" title="Next (Ctrl+→)">▶</button>
+                </div>
+                <div class="progress-pill">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="search-pill">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Search...">
+                </div>
+                <select class="filter-select" id="statusFilter">
+                    <option value="">All</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+                <button class="liquid-btn accent" id="saveBtn">💾 Save</button>
+                <button class="liquid-btn success" id="approveBtn">✓</button>
+                <button class="liquid-btn danger" id="rejectBtn">✗</button>
+            </div>
+        </header>
+
+
+        <div class="main-content">
+            <div class="pdf-pane liquid-glass" id="pdfPane">
+                <div class="pdf-toolbar">
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" id="zoomOut">−</button>
+                        <select class="zoom-select" id="zoomSelect">
+                            <option value="50">50%</option>
+                            <option value="75">75%</option>
+                            <option value="100" selected>100%</option>
+                            <option value="125">125%</option>
+                            <option value="150">150%</option>
+                            <option value="200">200%</option>
+                        </select>
+                        <button class="toolbar-btn" id="zoomIn">+</button>
+                        <button class="toolbar-btn" id="fitWidth" title="Fit Width">↔</button>
+                    </div>
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" id="prevPage">◀</button>
+                        <input type="number" class="page-input" id="pageInput" value="1" min="1">
+                        <span class="page-info">of <span id="totalPages">0</span></span>
+                        <button class="toolbar-btn" id="nextPage">▶</button>
+                    </div>
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" id="rotateCW" title="Rotate">↻</button>
+                        <button class="toolbar-btn" id="exportBtn" title="Export">📤</button>
+                    </div>
+                </div>
+                <div class="pdf-viewport" id="pdfViewport">
+                    <div class="pdf-loading" id="pdfLoading">
+                        <div class="spinner"></div>
+                        <span>Loading PDF files...</span>
+                    </div>
+                    <div class="pdf-container" id="pdfContainer" style="display: none;">
+                        <div class="preview-badge" id="previewBadge" style="display: none;">📝 Live Preview</div>
+                        <canvas id="pdfCanvas"></canvas>
+                        <div class="text-layer" id="textLayer"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="resizer" id="resizer"></div>
+
+            <div class="inspector-pane liquid-glass" id="inspectorPane">
+                <div class="tab-nav">
+                    <button class="tab-btn active" data-tab="properties">Properties</button>
+                    <button class="tab-btn" data-tab="metadata">Metadata</button>
+                    <button class="tab-btn" data-tab="text">Text</button>
+                    <button class="tab-btn" data-tab="pages">Pages</button>
+                    <button class="tab-btn" data-tab="notes">Notes</button>
+                    <button class="tab-btn" data-tab="settings">Settings</button>
+                </div>
+                <div class="tab-content">
+                    <!-- Properties Tab -->
+                    <div class="tab-panel active" id="tab-properties">
+                        <div class="glass-card">
+                            <div class="card-title"><span class="card-title-icon">📄</span> Document Info</div>
+                            <div class="prop-row"><span class="prop-name">Filename</span><span class="prop-value"
+                                    id="propFilename">-</span></div>
+                            <div class="prop-row"><span class="prop-name">Pages</span><span class="prop-value"
+                                    id="propPages">-</span></div>
+                            <div class="prop-row"><span class="prop-name">File Size</span><span class="prop-value"
+                                    id="propSize">-</span></div>
+                            <div class="prop-row"><span class="prop-name">Modified</span><span class="prop-value"
+                                    id="propModified">-</span></div>
+                        </div>
+                        <div class="glass-card">
+                            <div class="card-title"><span class="card-title-icon">📊</span> Review Status</div>
+                            <div class="prop-row"><span class="prop-name">Status</span><span class="prop-value"><span
+                                        class="status-badge status-pending" id="propStatus">Pending</span></span></div>
+                            <div class="prop-row"><span class="prop-name">Reviewer</span><span class="prop-value"
+                                    id="propReviewer">-</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Metadata Tab -->
+                    <div class="tab-panel" id="tab-metadata">
+                        <div class="form-group">
+                            <label class="form-label">Title</label>
+                            <input type="text" class="form-input" id="metaTitle" placeholder="Document title">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Author</label>
+                            <input type="text" class="form-input" id="metaAuthor" placeholder="Author name">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Subject</label>
+                            <input type="text" class="form-input" id="metaSubject" placeholder="Subject">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Keywords</label>
+                            <input type="text" class="form-input" id="metaKeywords" placeholder="keyword1, keyword2">
+                        </div>
+                        <button class="liquid-btn accent" style="width: 100%;" onclick="updateMetadata()">Update
+                            Metadata</button>
+                    </div>
+
+                    <!-- Text Tab - Enhanced Editor -->
+                    <div class="tab-panel" id="tab-text">
+                        <!-- Formatting Toolbar -->
+                        <div class="formatting-toolbar">
+                            <div class="format-group">
+                                <select class="format-select" id="fontFamily" onchange="updateFormatting()">
+                                    <option value="Arial">Arial</option>
+                                    <option value="Times New Roman">Times New Roman</option>
+                                    <option value="Helvetica">Helvetica</option>
+                                    <option value="Courier">Courier</option>
+                                </select>
+                                <select class="format-select" id="fontSize" onchange="updateFormatting()">
+                                    <option value="8">8pt</option>
+                                    <option value="10">10pt</option>
+                                    <option value="12" selected>12pt</option>
+                                    <option value="14">14pt</option>
+                                    <option value="16">16pt</option>
+                                    <option value="18">18pt</option>
+                                    <option value="20">20pt</option>
+                                    <option value="24">24pt</option>
+                                    <option value="28">28pt</option>
+                                    <option value="32">32pt</option>
+                                    <option value="36">36pt</option>
+                                    <option value="48">48pt</option>
+                                    <option value="72">72pt</option>
+                                </select>
+                            </div>
+                            <div class="format-divider"></div>
+                            <div class="format-group">
+                                <button class="format-btn" id="boldBtn" onclick="toggleFormat('bold')"
+                                    title="Bold (Ctrl+B)"><b>B</b></button>
+                                <button class="format-btn" id="italicBtn" onclick="toggleFormat('italic')"
+                                    title="Italic (Ctrl+I)"><i>I</i></button>
+                                <button class="format-btn" id="underlineBtn" onclick="toggleFormat('underline')"
+                                    title="Underline (Ctrl+U)"><u>U</u></button>
+                            </div>
+                            <div class="format-divider"></div>
+                            <div class="color-picker-wrapper">
+                                <div class="color-picker-btn" title="Text Color">
+                                    <input type="color" id="textColor" value="#000000" onchange="updateFormatting()">
+                                </div>
+                            </div>
+                            <div class="format-divider"></div>
+                            <div class="history-buttons">
+                                <button class="history-btn" id="undoBtn" onclick="undoEdit()" disabled
+                                    title="Undo (Ctrl+Z)">↶ Undo</button>
+                                <button class="history-btn" id="redoBtn" onclick="redoEdit()" disabled
+                                    title="Redo (Ctrl+Y)">↷ Redo</button>
+                            </div>
+                        </div>
+
+                        <!-- Tool Buttons -->
+                        <div class="glass-card">
+                            <div class="card-title"><span class="card-title-icon">✏️</span> Text Tools</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                <button class="liquid-btn accent" id="addTextBtn" onclick="enableClickToAdd()">➕ Click
+                                    to Add</button>
+                                <button class="liquid-btn" onclick="selectAllText()">📋 Select All</button>
+                                <button class="liquid-btn" id="ocrBtn" onclick="runOCR()">🔍 Run OCR</button>
+                                <button class="liquid-btn danger" onclick="redactText()">⬛ Redact</button>
+                            </div>
+                        </div>
+
+                        <!-- Editable Text Area -->
+                        <div class="form-group">
+                            <label class="form-label">
+                                <span>Live Editable Text</span>
+                                <span style="color: var(--accent-primary);">Page <span id="textPageNum">1</span></span>
+                            </label>
+                            <textarea class="form-input" id="extractedText"
+                                style="min-height: 220px; font-family: Arial, sans-serif; font-size: 12px;"
+                                placeholder="Text appears here. Edit and see live preview on the PDF canvas. Click directly on PDF to add text."
+                                oninput="onTextInput()"></textarea>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <button class="liquid-btn success" onclick="applyTextChanges()">✓ Apply & Preview</button>
+                            <button class="liquid-btn" onclick="copyTextToClipboard()">📋 Copy Text</button>
+                        </div>
+                    </div>
+
+
+                    <!-- Pages Tab -->
+                    <div class="tab-panel" id="tab-pages">
+                        <div class="glass-card">
+                            <div class="card-title"><span class="card-title-icon">📑</span> Page Actions</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                <button class="liquid-btn" onclick="rotatePage(90)">↻ Rotate 90°</button>
+                                <button class="liquid-btn" onclick="rotatePage(180)">↻ Rotate 180°</button>
+                                <button class="liquid-btn danger" onclick="deletePage()">🗑 Delete</button>
+                                <button class="liquid-btn" onclick="duplicatePage()">📋 Duplicate</button>
+                            </div>
+                        </div>
+                        <div class="glass-card">
+                            <div class="card-title">Page Thumbnails</div>
+                            <div class="page-grid" id="pageGrid"></div>
+                        </div>
+                    </div>
+
+                    <!-- Notes Tab -->
+                    <div class="tab-panel" id="tab-notes">
+                        <div class="form-group">
+                            <label class="form-label">Reviewer</label>
+                            <input type="text" class="form-input" id="reviewerName" value="Reviewer">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select class="form-input" id="reviewStatus">
+                                <option value="pending">⏳ Pending</option>
+                                <option value="approved">✓ Approved</option>
+                                <option value="rejected">✗ Rejected</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Review Notes</label>
+                            <textarea class="form-input" id="reviewNotes" placeholder="Add notes..."></textarea>
+                        </div>
+                        <button class="liquid-btn accent" style="width: 100%;" onclick="saveReviewNotes()">💾 Save
+                            Notes</button>
+                    </div>
+
+                    <!-- Settings Tab -->
+                    <div class="tab-panel" id="tab-settings">
+                        <div class="glass-card">
+                            <div class="card-title"><span class="card-title-icon">⚙️</span> Preferences</div>
+                            <div class="toggle-row">
+                                <div>
+                                    <div class="toggle-label">Auto-advance</div>
+                                    <div class="toggle-description">Move to next PDF after review</div>
+                                </div>
+                                <label class="ios-toggle">
+                                    <input type="checkbox" id="toggleAutoAdvance" checked>
+                                    <span class="ios-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-row">
+                                <div>
+                                    <div class="toggle-label">Auto-save</div>
+                                    <div class="toggle-description">Save changes automatically</div>
+                                </div>
+                                <label class="ios-toggle">
+                                    <input type="checkbox" id="toggleAutoSave">
+                                    <span class="ios-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-row">
+                                <div>
+                                    <div class="toggle-label">Dim background</div>
+                                    <div class="toggle-description">Reduce video opacity on focus</div>
+                                </div>
+                                <label class="ios-toggle">
+                                    <input type="checkbox" id="toggleDimBg" checked>
+                                    <span class="ios-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-row">
+                                <div>
+                                    <div class="toggle-label">Keyboard shortcuts</div>
+                                    <div class="toggle-description">Enable hotkey navigation</div>
+                                </div>
+                                <label class="ios-toggle">
+                                    <input type="checkbox" id="toggleShortcuts" checked>
+                                    <span class="ios-toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Enhanced state with edit history
+        const state = {
+            pdfFiles: [], currentIndex: 0, pdfDoc: null, pdfBytes: null,
+            currentPage: 1, totalPages: 0, zoom: 1, rotation: 0, hasChanges: false,
+            textLayerItems: [], addTextMode: false, currentFormatting: {
+                fontFamily: 'Arial', fontSize: 12, bold: false, italic: false, underline: false, color: '#000000'
+            }
+        };
+        const API_BASE = `http://${window.location.hostname}:5001/api`;
+        const settings = { autoAdvance: true, autoSave: false, dimBg: true, shortcuts: true };
+
+        // Edit History Class for Undo/Redo
+        class EditHistory {
+            constructor(maxSize = 50) {
+                this.undoStack = [];
+                this.redoStack = [];
+                this.maxSize = maxSize;
+            }
+            push(textState) {
+                if (this.undoStack.length >= this.maxSize) this.undoStack.shift();
+                this.undoStack.push(textState);
+                this.redoStack = []; // Clear redo stack on new action
+                this.updateButtons();
+            }
+            undo() {
+                if (this.undoStack.length === 0) return null;
+                const current = document.getElementById('extractedText').value;
+                this.redoStack.push(current);
+                const prev = this.undoStack.pop();
+                this.updateButtons();
+                return prev;
+            }
+            redo() {
+                if (this.redoStack.length === 0) return null;
+                const current = document.getElementById('extractedText').value;
+                this.undoStack.push(current);
+                const next = this.redoStack.pop();
+                this.updateButtons();
+                return next;
+            }
+            updateButtons() {
+                document.getElementById('undoBtn').disabled = this.undoStack.length === 0;
+                document.getElementById('redoBtn').disabled = this.redoStack.length === 0;
+            }
+            clear() {
+                this.undoStack = [];
+                this.redoStack = [];
+                this.updateButtons();
+            }
+        }
+        const editHistory = new EditHistory();
+
+        async function init() {
+            setupEventListeners();
+            setupResizer();
+            setupKeyboardShortcuts();
+            await loadPDFList();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('prevBtn').onclick = () => navigatePDF(-1);
+            document.getElementById('nextBtn').onclick = () => navigatePDF(1);
+            document.getElementById('prevPage').onclick = () => changePage(-1);
+            document.getElementById('nextPage').onclick = () => changePage(1);
+            document.getElementById('pageInput').onchange = (e) => goToPage(parseInt(e.target.value));
+            document.getElementById('zoomIn').onclick = () => changeZoom(0.25);
+            document.getElementById('zoomOut').onclick = () => changeZoom(-0.25);
+            document.getElementById('zoomSelect').onchange = (e) => setZoom(parseInt(e.target.value) / 100);
+            document.getElementById('fitWidth').onclick = fitToWidth;
+            document.getElementById('saveBtn').onclick = savePDF;
+            document.getElementById('approveBtn').onclick = () => setStatus('approved');
+            document.getElementById('rejectBtn').onclick = () => setStatus('rejected');
+            document.getElementById('rotateCW').onclick = () => rotatePage(90);
+            document.getElementById('exportBtn').onclick = exportReview;
+            document.getElementById('searchInput').oninput = debounce(searchPDFs, 300);
+            document.getElementById('statusFilter').onchange = filterByStatus;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = () => switchTab(btn.dataset.tab));
+
+            // Settings toggles
+            document.getElementById('toggleAutoAdvance').onchange = (e) => settings.autoAdvance = e.target.checked;
+            document.getElementById('toggleAutoSave').onchange = (e) => settings.autoSave = e.target.checked;
+            document.getElementById('toggleDimBg').onchange = (e) => settings.dimBg = e.target.checked;
+            document.getElementById('toggleShortcuts').onchange = (e) => settings.shortcuts = e.target.checked;
+
+            // Video dimming
+            if (settings.dimBg) {
+                document.addEventListener('mousedown', () => document.getElementById('videoBg').classList.add('dimmed'));
+                document.addEventListener('mouseup', () => setTimeout(() => document.getElementById('videoBg').classList.remove('dimmed'), 3000));
+            }
+        }
+
+        function setupResizer() {
+            const resizer = document.getElementById('resizer');
+            const pdfPane = document.getElementById('pdfPane');
+            let isResizing = false;
+            resizer.addEventListener('mousedown', () => { isResizing = true; resizer.classList.add('active'); });
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                const containerWidth = document.querySelector('.main-content').offsetWidth;
+                const newWidth = (e.clientX / containerWidth) * 100;
+                if (newWidth >= 30 && newWidth <= 70) pdfPane.style.flex = `0 0 ${newWidth}%`;
+            });
+            document.addEventListener('mouseup', () => { isResizing = false; resizer.classList.remove('active'); });
+        }
+
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                if (!settings.shortcuts) return;
+                if (e.ctrlKey) {
+                    switch (e.key) {
+                        case 's': e.preventDefault(); savePDF(); break;
+                        case 'e': e.preventDefault(); exportReview(); break;
+                        case 'ArrowRight': e.preventDefault(); navigatePDF(1); break;
+                        case 'ArrowLeft': e.preventDefault(); navigatePDF(-1); break;
+                        case 'f': e.preventDefault(); document.getElementById('searchInput').focus(); break;
+                        case '+': case '=': e.preventDefault(); changeZoom(0.25); break;
+                        case '-': e.preventDefault(); changeZoom(-0.25); break;
+                        case '0': e.preventDefault(); setZoom(1); break;
+                    }
+                } else {
+                    switch (e.key) {
+                        case 'F2': e.preventDefault(); setStatus('approved'); break;
+                        case 'F3': e.preventDefault(); setStatus('rejected'); break;
+                        case 'PageUp': e.preventDefault(); changePage(-1); break;
+                        case 'PageDown': e.preventDefault(); changePage(1); break;
+                    }
+                }
+            });
+        }
+
+        async function loadPDFList() {
+            try {
+                const response = await fetch(`${API_BASE}/pdfs`);
+                const data = await response.json();
+                if (data.success) {
+                    state.pdfFiles = data.files;
+                    updateFileCounter();
+                    if (state.pdfFiles.length > 0) await loadPDF(0);
+                    else showEmptyState();
+                }
+            } catch (error) {
+                showToast('Start pdf_review.py server first', 'error');
+                showEmptyState();
+            }
+        }
+
+        async function loadPDF(index) {
+            if (index < 0 || index >= state.pdfFiles.length) return;
+            state.currentIndex = index;
+            const file = state.pdfFiles[index];
+            document.getElementById('pdfLoading').style.display = 'flex';
+            document.getElementById('pdfContainer').style.display = 'none';
+            document.getElementById('fileInfo').textContent = file.name;
+            editHistory.clear();
+            try {
+                const response = await fetch(`${API_BASE}/pdf/${encodeURIComponent(file.name)}`);
+                state.pdfBytes = await response.arrayBuffer();
+                state.pdfDoc = await pdfjsLib.getDocument({ data: state.pdfBytes }).promise;
+                state.totalPages = state.pdfDoc.numPages;
+                state.currentPage = 1;
+                state.rotation = 0;
+                updateFileCounter();
+                updatePageInfo();
+                updateProperties(file);
+                await renderPage(1);
+                await extractText(1);
+                await buildTextLayer(1);
+                generateThumbnails();
+                document.getElementById('pdfLoading').style.display = 'none';
+                document.getElementById('pdfContainer').style.display = 'inline-block';
+            } catch (error) {
+                showToast('Failed to load PDF', 'error');
+            }
+        }
+
+        async function renderPage(pageNum) {
+            if (!state.pdfDoc) return;
+            const page = await state.pdfDoc.getPage(pageNum);
+            const canvas = document.getElementById('pdfCanvas');
+            const ctx = canvas.getContext('2d');
+            const viewport = page.getViewport({ scale: state.zoom, rotation: state.rotation });
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            // Draw edit overlays on top of the rendered page
+            drawEditOverlays(ctx, pageNum);
+        }
+
+        // Draw edited text overlays on the canvas
+        function drawEditOverlays(ctx, pageNum) {
+            // Get all text layer spans that have been edited
+            const textLayer = document.getElementById('textLayer');
+            if (!textLayer) return;
+
+            const editedSpans = textLayer.querySelectorAll('span[data-edited="true"]');
+            editedSpans.forEach(span => {
+                const x = parseFloat(span.style.left) || 0;
+                const y = parseFloat(span.style.top) || 0;
+                const text = span.textContent;
+                const fontSize = parseFloat(span.style.fontSize) || 12;
+                const fontFamily = span.style.fontFamily || state.currentFormatting.fontFamily;
+                const color = span.style.color || '#000000';
+
+                // Measure text width to draw background
+                ctx.font = `${fontSize}px ${fontFamily}`;
+                const textMetrics = ctx.measureText(text);
+                const textWidth = textMetrics.width;
+                const textHeight = fontSize * 1.2;
+
+                // Draw white background to cover original text
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(x - 2, y - 2, textWidth + 6, textHeight + 4);
+
+                // Draw border (light gray)
+                ctx.strokeStyle = 'rgba(52, 199, 89, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x - 2, y - 2, textWidth + 6, textHeight + 4);
+
+                // Draw the new text
+                ctx.fillStyle = color;
+                ctx.fillText(text, x, y + fontSize);
+            });
+
+            // Also draw any pending text annotations
+            textAnnotations.filter(a => a.page === pageNum && (a.type === 'editText' || a.type === 'text')).forEach(annotation => {
+                const x = annotation.x * state.zoom;
+                const y = annotation.y * state.zoom;
+                const text = annotation.newText || annotation.content;
+                const fmt = annotation.formatting || state.currentFormatting;
+                const fontSize = (fmt.fontSize || 12) * state.zoom;
+                const fontFamily = fmt.fontFamily || 'Arial';
+
+                ctx.font = `${fontSize}px ${fontFamily}`;
+                const textMetrics = ctx.measureText(text);
+                const textWidth = textMetrics.width;
+                const textHeight = fontSize * 1.2;
+
+                // Draw white background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(x - 2, y - 2, textWidth + 6, textHeight + 4);
+
+                // Draw green border for edits
+                ctx.strokeStyle = 'rgba(52, 199, 89, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x - 2, y - 2, textWidth + 6, textHeight + 4);
+
+                // Draw text
+                ctx.fillStyle = fmt.color || '#000000';
+                ctx.fillText(text, x, y + fontSize);
+            });
+        }
+
+        async function extractText(pageNum) {
+            if (!state.pdfDoc) return;
+            const page = await state.pdfDoc.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            document.getElementById('textPageNum').textContent = pageNum;
+            document.getElementById('extractedText').value = textContent.items.map(item => item.str).join(' ');
+        }
+
+        function generateThumbnails() {
+            const grid = document.getElementById('pageGrid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= Math.min(state.totalPages, 20); i++) {
+                const thumb = document.createElement('div');
+                thumb.className = `page-thumb${i === state.currentPage ? ' current' : ''}`;
+                thumb.textContent = i;
+                thumb.onclick = () => goToPage(i);
+                grid.appendChild(thumb);
+            }
+        }
+
+        function navigatePDF(dir) { const idx = state.currentIndex + dir; if (idx >= 0 && idx < state.pdfFiles.length) loadPDF(idx); }
+        function changePage(dir) { const p = state.currentPage + dir; if (p >= 1 && p <= state.totalPages) goToPage(p); }
+        async function goToPage(p) { if (p >= 1 && p <= state.totalPages) { state.currentPage = p; await renderPage(p); await extractText(p); updatePageInfo(); generateThumbnails(); } }
+        function changeZoom(d) { setZoom(Math.max(0.25, Math.min(3, state.zoom + d))); }
+        function setZoom(z) { state.zoom = z; document.getElementById('zoomSelect').value = Math.round(z * 100); renderPage(state.currentPage); }
+        function fitToWidth() { const vp = document.getElementById('pdfViewport'); const cv = document.getElementById('pdfCanvas'); if (cv.width > 0) setZoom((vp.clientWidth - 48) / (cv.width / state.zoom)); }
+        function rotatePage(deg) { state.rotation = (state.rotation + deg) % 360; renderPage(state.currentPage); }
+
+        function updateFileCounter() {
+            document.getElementById('currentIndex').textContent = state.currentIndex + 1;
+            document.getElementById('totalFiles').textContent = state.pdfFiles.length;
+            document.getElementById('progressFill').style.width = state.pdfFiles.length > 0 ? ((state.currentIndex + 1) / state.pdfFiles.length * 100) + '%' : '0%';
+            document.getElementById('prevBtn').disabled = state.currentIndex === 0;
+            document.getElementById('nextBtn').disabled = state.currentIndex >= state.pdfFiles.length - 1;
+        }
+
+        function updatePageInfo() {
+            document.getElementById('pageInput').value = state.currentPage;
+            document.getElementById('pageInput').max = state.totalPages;
+            document.getElementById('totalPages').textContent = state.totalPages;
+        }
+
+        function updateProperties(file) {
+            document.getElementById('propFilename').textContent = file.name;
+            document.getElementById('propPages').textContent = state.totalPages;
+            document.getElementById('propSize').textContent = formatSize(file.size);
+            document.getElementById('propModified').textContent = new Date(file.modified).toLocaleDateString();
+            const el = document.getElementById('propStatus');
+            el.textContent = file.status.charAt(0).toUpperCase() + file.status.slice(1);
+            el.className = 'status-badge status-' + file.status;
+            document.getElementById('reviewStatus').value = file.status;
+            document.getElementById('reviewNotes').value = file.notes || '';
+        }
+
+        async function setStatus(status) {
+            if (!state.pdfFiles.length) return;
+            const file = state.pdfFiles[state.currentIndex];
+            try {
+                await fetch(`${API_BASE}/review/status`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: file.name, status, reviewer: document.getElementById('reviewerName').value, notes: document.getElementById('reviewNotes').value })
+                });
+                file.status = status;
+                updateProperties(file);
+                showToast(`Marked as ${status}`, 'success');
+                if (settings.autoAdvance && state.currentIndex < state.pdfFiles.length - 1) setTimeout(() => navigatePDF(1), 500);
+            } catch (e) { showToast('Failed to update', 'error'); }
+        }
+
+        async function savePDF() {
+            if (!state.pdfBytes) return;
+            try {
+                const pdfDoc = await PDFLib.PDFDocument.load(state.pdfBytes);
+                pdfDoc.setTitle(document.getElementById('metaTitle').value || '');
+                pdfDoc.setAuthor(document.getElementById('metaAuthor').value || '');
+                pdfDoc.setSubject(document.getElementById('metaSubject').value || '');
+                pdfDoc.setKeywords(document.getElementById('metaKeywords').value.split(',').map(k => k.trim()));
+                const modifiedBytes = await pdfDoc.save();
+                const formData = new FormData();
+                formData.append('file', new Blob([modifiedBytes], { type: 'application/pdf' }));
+                formData.append('filename', state.pdfFiles[state.currentIndex].name);
+                const res = await fetch(`${API_BASE}/pdf/save`, { method: 'POST', body: formData });
+                const result = await res.json();
+                if (result.success) showToast('Saved successfully', 'success');
+                else throw new Error(result.error);
+            } catch (e) { showToast('Save failed: ' + e.message, 'error'); }
+        }
+
+        function updateMetadata() { showToast('Click Save to apply metadata', 'success'); state.hasChanges = true; }
+        async function saveReviewNotes() { await setStatus(document.getElementById('reviewStatus').value); }
+
+        async function exportReview() {
+            if (!state.pdfFiles.length) return;
+            const file = state.pdfFiles[state.currentIndex];
+            const report = `PDF REVIEW REPORT\n${'='.repeat(50)}\nFile: ${file.name}\nDate: ${new Date().toLocaleString()}\nReviewer: ${document.getElementById('reviewerName').value}\nStatus: ${file.status.toUpperCase()}\nPages: ${state.totalPages}\nSize: ${formatSize(file.size)}\n${'='.repeat(50)}\nNotes:\n${document.getElementById('reviewNotes').value || 'None'}\n${'='.repeat(50)}`;
+            try {
+                const res = await fetch(`${API_BASE}/review/export`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: file.name, content: report }) });
+                const result = await res.json();
+                if (result.success) showToast('Exported successfully', 'success');
+            } catch (e) { showToast('Export failed', 'error'); }
+        }
+
+        async function searchPDFs() {
+            const q = document.getElementById('searchInput').value;
+            const s = document.getElementById('statusFilter').value;
+            try {
+                const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(q)}&status=${s}`);
+                const data = await res.json();
+                if (data.success) { state.pdfFiles = data.files; state.currentIndex = 0; updateFileCounter(); if (state.pdfFiles.length) await loadPDF(0); else showEmptyState(); }
+            } catch (e) { }
+        }
+        function filterByStatus() { searchPDFs(); }
+
+        function switchTab(id) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelector(`.tab-btn[data-tab="${id}"]`).classList.add('active');
+            document.getElementById('tab-' + id).classList.add('active');
+        }
+
+        function formatSize(b) { if (b < 1024) return b + ' B'; if (b < 1048576) return (b / 1024).toFixed(1) + ' KB'; return (b / 1048576).toFixed(1) + ' MB'; }
+        function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn.apply(this, a), ms); }; }
+        function showToast(msg, type = 'success') { const c = document.getElementById('toastContainer'); const t = document.createElement('div'); t.className = 'toast ' + type; t.innerHTML = `<span>${type === 'success' ? '✓' : '✗'}</span> ${msg}`; c.appendChild(t); setTimeout(() => t.remove(), 4000); }
+        function showEmptyState() { document.getElementById('pdfLoading').innerHTML = `<div style="text-align:center;"><div style="font-size:48px;opacity:0.3;margin-bottom:16px;">📄</div><h3 style="margin-bottom:8px;">No PDFs Found</h3><p style="color:var(--text-tertiary);">Add PDFs to Output Split PDF folder</p></div>`; }
+        function deletePage() { if (confirm('Delete this page?')) showToast('Page will be deleted on save', 'success'); }
+        function duplicatePage() { showToast('Page duplicated', 'success'); }
+
+        // Text Editing Functions
+        let textEditMode = null;
+        let textAnnotations = [];
+
+        function enableTextAnnotation() {
+            textEditMode = 'addText';
+            showToast('Click on the PDF to add text annotation', 'success');
+            const canvas = document.getElementById('pdfCanvas');
+            canvas.style.cursor = 'text';
+            canvas.onclick = function (e) {
+                if (textEditMode !== 'addText') return;
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const text = prompt('Enter text to add:');
+                if (text) {
+                    textAnnotations.push({ type: 'text', x, y, content: text, page: state.currentPage });
+                    drawAnnotations();
+                    showToast('Text annotation added', 'success');
+                }
+                textEditMode = null;
+                canvas.style.cursor = 'default';
+            };
+        }
+
+        function highlightText() {
+            const textarea = document.getElementById('extractedText');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            if (start === end) {
+                showToast('Select text to highlight', 'error');
+                return;
+            }
+            const selectedText = textarea.value.substring(start, end);
+            textAnnotations.push({ type: 'highlight', text: selectedText, page: state.currentPage });
+            showToast(`Highlighted: "${selectedText.substring(0, 30)}..."`, 'success');
+        }
+
+        function strikethrough() {
+            const textarea = document.getElementById('extractedText');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            if (start === end) {
+                showToast('Select text to strikethrough', 'error');
+                return;
+            }
+            const selectedText = textarea.value.substring(start, end);
+            textAnnotations.push({ type: 'strikethrough', text: selectedText, page: state.currentPage });
+            showToast(`Strikethrough: "${selectedText.substring(0, 30)}..."`, 'success');
+        }
+
+        function redactText() {
+            const textarea = document.getElementById('extractedText');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            if (start === end) {
+                showToast('Select text to redact', 'error');
+                return;
+            }
+            const selectedText = textarea.value.substring(start, end);
+            const redacted = '█'.repeat(selectedText.length);
+            textarea.value = textarea.value.substring(0, start) + redacted + textarea.value.substring(end);
+            textAnnotations.push({ type: 'redact', originalText: selectedText, page: state.currentPage });
+            showToast('Text redacted', 'success');
+            state.hasChanges = true;
+        }
+
+        async function applyTextChanges() {
+            if (!state.pdfFiles || state.pdfFiles.length === 0) {
+                showToast('No PDF loaded', 'error');
+                return;
+            }
+            try {
+                const editedText = document.getElementById('extractedText').value;
+                // Store the edited text for this page
+                if (!state.editedPages) state.editedPages = {};
+                state.editedPages[state.currentPage] = editedText;
+                state.hasChanges = true;
+
+                // Get fresh PDF bytes from stored data
+                const currentFile = state.pdfFiles[state.currentIndex];
+                let pdfBytesArray;
+
+                if (currentFile.file) {
+                    const arrayBuffer = await currentFile.file.arrayBuffer();
+                    pdfBytesArray = new Uint8Array(arrayBuffer);
+                } else if (state.pdfBytes) {
+                    pdfBytesArray = new Uint8Array(state.pdfBytes);
+                } else {
+                    showToast('PDF data not available', 'error');
+                    return;
+                }
+
+                // Apply text annotations using pdf-lib
+                const pdfDoc = await PDFLib.PDFDocument.load(pdfBytesArray);
+                const pages = pdfDoc.getPages();
+                const page = pages[state.currentPage - 1];
+                const { width, height } = page.getSize();
+
+                // Embed fonts
+                const fonts = {
+                    'Arial': await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica),
+                    'Helvetica': await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica),
+                    'Times New Roman': await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRoman),
+                    'Courier': await pdfDoc.embedFont(PDFLib.StandardFonts.Courier)
+                };
+
+                // Add text annotations with formatting
+                for (const annotation of textAnnotations.filter(a => a.page === state.currentPage && a.type === 'text')) {
+                    const fmt = annotation.formatting || state.currentFormatting;
+                    const fontKey = fmt.fontFamily || 'Helvetica';
+                    const font = fonts[fontKey] || fonts['Helvetica'];
+
+                    // Parse color
+                    let r = 0, g = 0, b = 0;
+                    if (fmt.color && fmt.color.startsWith('#')) {
+                        r = parseInt(fmt.color.slice(1, 3), 16) / 255;
+                        g = parseInt(fmt.color.slice(3, 5), 16) / 255;
+                        b = parseInt(fmt.color.slice(5, 7), 16) / 255;
+                    }
+
+                    page.drawText(annotation.content, {
+                        x: annotation.x,
+                        y: height - annotation.y,
+                        size: fmt.fontSize || 12,
+                        font: font,
+                        color: PDFLib.rgb(r, g, b)
+                    });
+                }
+
+                // Save modified PDF
+                const modifiedBytes = await pdfDoc.save();
+                state.pdfBytes = new Uint8Array(modifiedBytes);
+
+                // PREVIEW: Reload and re-render the modified PDF
+                state.pdfDoc = await pdfjsLib.getDocument({ data: state.pdfBytes }).promise;
+                await renderPage(state.currentPage);
+                await buildTextLayer(state.currentPage);
+
+                document.getElementById('previewBadge').style.display = 'block';
+                document.getElementById('previewBadge').textContent = '✓ Preview Updated';
+
+                showToast('Preview updated! Click Save to keep changes.', 'success');
+            } catch (err) {
+                console.error('Apply changes error:', err);
+                showToast('Error applying changes: ' + err.message, 'error');
+            }
+        }
+
+        // OCR Functions
+        async function runOCR() {
+            if (!state.pdfFiles || state.pdfFiles.length === 0) {
+                showToast('No PDF loaded for OCR', 'error');
+                return;
+            }
+
+            showToast('Running OCR on current page...', 'success');
+
+            try {
+                // Get canvas image data
+                const canvas = document.getElementById('pdfCanvas');
+                const imageData = canvas.toDataURL('image/png');
+
+                // For browser-based OCR, we'll use Tesseract.js via CDN
+                if (typeof Tesseract === 'undefined') {
+                    // Load Tesseract.js dynamically
+                    const script = document.createElement('script');
+                    script.src = 'https://unpkg.com/tesseract.js@4/dist/tesseract.min.js';
+                    document.head.appendChild(script);
+                    await new Promise(resolve => script.onload = resolve);
+                }
+
+                const result = await Tesseract.recognize(imageData, 'eng', {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            const progress = Math.round(m.progress * 100);
+                            document.getElementById('extractedText').placeholder = `OCR Progress: ${progress}%`;
+                        }
+                    }
+                });
+
+                document.getElementById('extractedText').value = result.data.text;
+                document.getElementById('extractedText').placeholder = 'OCR complete! You can edit the text above.';
+                showToast('OCR completed! Text is now editable.', 'success');
+
+            } catch (err) {
+                console.error('OCR error:', err);
+                showToast('OCR failed: ' + err.message, 'error');
+            }
+        }
+
+        async function downloadModifiedPDF() {
+            if (!state.pdfBytes) {
+                showToast('No modified PDF to download', 'error');
+                return;
+            }
+            try {
+                const blob = new Blob([state.pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = state.pdfFiles[state.currentIndex].name.replace('.pdf', '_edited.pdf');
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('PDF downloaded successfully!', 'success');
+            } catch (err) {
+                showToast('Download failed: ' + err.message, 'error');
+            }
+        }
+
+        function copyTextToClipboard() {
+            const textarea = document.getElementById('extractedText');
+            textarea.select();
+            document.execCommand('copy');
+            showToast('Text copied to clipboard', 'success');
+        }
+
+        function drawAnnotations() {
+            // Re-render page with annotations overlay
+            renderPage(state.currentPage);
+        }
+
+
+        // Generate stars for background
+        function generateStars() {
+            const container = document.getElementById('starsContainer');
+            if (!container) return;
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 'star' + (Math.random() > 0.9 ? ' large' : '');
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 5 + 's';
+                star.style.animationDuration = (3 + Math.random() * 4) + 's';
+                container.appendChild(star);
+            }
+        }
+        generateStars();
+
+        // Handle file input for browsing local PDFs
+        document.getElementById('pdfFileInput').addEventListener('change', async function (e) {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            state.pdfFiles = files.map(f => ({
+                name: f.name,
+                path: URL.createObjectURL(f),
+                size: f.size,
+                modified: f.lastModified,
+                status: 'pending',
+                notes: '',
+                file: f
+            }));
+
+            state.currentIndex = 0;
+            editHistory.clear();
+            updateFileCounter();
+
+            // Load first PDF
+            if (state.pdfFiles.length > 0) {
+                const file = state.pdfFiles[0];
+                document.getElementById('fileInfo').textContent = file.name;
+                document.getElementById('pdfLoading').style.display = 'none';
+                document.getElementById('pdfContainer').style.display = 'inline-block';
+
+                try {
+                    const arrayBuffer = await file.file.arrayBuffer();
+                    state.pdfBytes = new Uint8Array(arrayBuffer);
+                    state.pdfDoc = await pdfjsLib.getDocument({ data: state.pdfBytes }).promise;
+                    state.totalPages = state.pdfDoc.numPages;
+                    state.currentPage = 1;
+                    await renderPage(1);
+                    await extractText(1);
+                    await buildTextLayer(1);
+                    updatePageInfo();
+                    updateProperties(file);
+                    showToast(`Loaded ${files.length} PDF(s)`, 'success');
+                } catch (err) {
+                    showToast('Error loading PDF: ' + err.message, 'error');
+                }
+            }
+        });
+
+        // ============ NEW FUNCTIONS ============
+
+        // Build text layer overlay for inline editing
+        async function buildTextLayer(pageNum) {
+            if (!state.pdfDoc) return;
+            const textLayer = document.getElementById('textLayer');
+            textLayer.innerHTML = '';
+
+            const page = await state.pdfDoc.getPage(pageNum);
+            const canvas = document.getElementById('pdfCanvas');
+            const viewport = page.getViewport({ scale: state.zoom, rotation: state.rotation });
+
+            // Set text layer dimensions to match canvas
+            textLayer.style.width = canvas.width + 'px';
+            textLayer.style.height = canvas.height + 'px';
+
+            const textContent = await page.getTextContent();
+            state.textLayerItems = textContent.items;
+
+            // Create clickable text spans
+            textContent.items.forEach((item, index) => {
+                if (!item.str.trim()) return;
+
+                const span = document.createElement('span');
+                span.textContent = item.str;
+                span.dataset.index = index;
+
+                // Calculate position
+                const tx = viewport.transform;
+                const x = item.transform[4] * state.zoom;
+                const y = canvas.height - (item.transform[5] * state.zoom) - (item.height || 12) * state.zoom;
+
+                span.style.left = x + 'px';
+                span.style.top = y + 'px';
+                span.style.fontSize = ((item.height || 12) * state.zoom) + 'px';
+                span.style.fontFamily = state.currentFormatting.fontFamily;
+
+                // Click to edit
+                span.onclick = (e) => {
+                    e.stopPropagation();
+                    showInlineEditor(span, item, x, y);
+                };
+
+                textLayer.appendChild(span);
+            });
+
+            // Click on empty area to add new text
+            textLayer.onclick = (e) => {
+                if (e.target === textLayer && state.addTextMode) {
+                    const rect = textLayer.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    showFloatingTextInput(x, y);
+                }
+            };
+        }
+
+        // Show inline editor for text
+        function showInlineEditor(span, item, x, y) {
+            // Remove existing editors
+            document.querySelectorAll('.inline-editor').forEach(el => el.remove());
+
+            const container = document.getElementById('pdfContainer');
+            const editor = document.createElement('input');
+            editor.type = 'text';
+            editor.className = 'inline-editor';
+            editor.value = span.textContent;
+            editor.style.left = x + 'px';
+            editor.style.top = y + 'px';
+            editor.style.fontSize = span.style.fontSize;
+            editor.style.fontFamily = state.currentFormatting.fontFamily;
+
+            // Apply formatting
+            if (state.currentFormatting.bold) editor.style.fontWeight = 'bold';
+            if (state.currentFormatting.italic) editor.style.fontStyle = 'italic';
+            editor.style.color = state.currentFormatting.color;
+
+            container.appendChild(editor);
+            editor.focus();
+            editor.select();
+
+            // Show text layer during editing
+            const textLayer = document.getElementById('textLayer');
+            textLayer.classList.add('editing');
+
+            const saveEdit = () => {
+                const newText = editor.value;
+                const originalText = span.dataset.original || span.textContent;
+
+                if (newText !== originalText) {
+                    // Save to history
+                    const currentText = document.getElementById('extractedText').value;
+                    editHistory.push(currentText);
+
+                    // Update span to show the edit visually
+                    span.textContent = newText;
+                    span.style.color = state.currentFormatting.color;
+                    span.style.fontFamily = state.currentFormatting.fontFamily;
+                    span.style.background = 'rgba(52, 199, 89, 0.3)'; // Green highlight for edited
+                    span.dataset.edited = 'true';
+                    span.dataset.original = originalText;
+
+                    // Update textarea
+                    const textarea = document.getElementById('extractedText');
+                    textarea.value = textarea.value.replace(originalText, newText);
+
+                    // Store as annotation for saving
+                    textAnnotations.push({
+                        type: 'editText',
+                        original: originalText,
+                        newText: newText,
+                        x: parseFloat(span.style.left) / state.zoom,
+                        y: parseFloat(span.style.top) / state.zoom,
+                        page: state.currentPage,
+                        formatting: { ...state.currentFormatting }
+                    });
+
+                    state.hasChanges = true;
+                    document.getElementById('previewBadge').style.display = 'block';
+                    document.getElementById('previewBadge').textContent = '📝 Edits Made';
+
+                    // Immediately re-render to show the edit overlay on canvas
+                    renderPage(state.currentPage);
+
+                    showToast('Text edited! Preview updated on canvas.', 'success');
+                }
+                editor.remove();
+                textLayer.classList.remove('editing');
+            };
+
+            editor.onblur = saveEdit;
+            editor.onkeydown = (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
+                if (e.key === 'Escape') { editor.remove(); textLayer.classList.remove('editing'); }
+            };
+        }
+
+        // Show floating input for adding new text
+        function showFloatingTextInput(x, y) {
+            document.querySelectorAll('.floating-text-input').forEach(el => el.remove());
+
+            const viewport = document.getElementById('pdfViewport');
+            const rect = viewport.getBoundingClientRect();
+
+            const container = document.createElement('div');
+            container.className = 'floating-text-input';
+            container.style.left = (rect.left + x) + 'px';
+            container.style.top = (rect.top + y) + 'px';
+
+            container.innerHTML = `
+                <textarea placeholder="Enter text to add..."></textarea>
+                <div class="btn-row">
+                    <button class="btn-cancel" onclick="this.closest('.floating-text-input').remove(); state.addTextMode = false;">Cancel</button>
+                    <button class="btn-confirm">Add Text</button>
+                </div>
+            `;
+
+            document.body.appendChild(container);
+            const textarea = container.querySelector('textarea');
+            textarea.focus();
+
+            container.querySelector('.btn-confirm').onclick = async () => {
+                const text = textarea.value.trim();
+                if (text) {
+                    textAnnotations.push({
+                        type: 'text', x: x / state.zoom, y: y / state.zoom,
+                        content: text, page: state.currentPage,
+                        formatting: { ...state.currentFormatting }
+                    });
+
+                    // Add to text layer visually
+                    const textLayer = document.getElementById('textLayer');
+                    const span = document.createElement('span');
+                    span.textContent = text;
+                    span.style.left = x + 'px';
+                    span.style.top = y + 'px';
+                    span.style.fontSize = state.currentFormatting.fontSize + 'px';
+                    span.style.color = state.currentFormatting.color;
+                    textLayer.appendChild(span);
+
+                    state.hasChanges = true;
+                    document.getElementById('previewBadge').style.display = 'block';
+                    showToast('Text added', 'success');
+                }
+                container.remove();
+                state.addTextMode = false;
+            };
+        }
+
+        // Enable click-to-add mode
+        function enableClickToAdd() {
+            state.addTextMode = !state.addTextMode;
+            const btn = document.getElementById('addTextBtn');
+            if (state.addTextMode) {
+                btn.classList.add('active');
+                document.body.classList.add('add-text-mode');
+                showToast('Click on PDF to add text', 'success');
+            } else {
+                btn.classList.remove('active');
+                document.body.classList.remove('add-text-mode');
+            }
+        }
+
+        // Handle text input with history
+        let inputDebounce = null;
+        function onTextInput() {
+            clearTimeout(inputDebounce);
+            inputDebounce = setTimeout(() => {
+                const text = document.getElementById('extractedText').value;
+                editHistory.push(text);
+                state.hasChanges = true;
+                document.getElementById('previewBadge').style.display = 'block';
+            }, 500);
+        }
+
+        // Undo edit
+        function undoEdit() {
+            const prev = editHistory.undo();
+            if (prev !== null) {
+                document.getElementById('extractedText').value = prev;
+                showToast('Undo', 'success');
+            }
+        }
+
+        // Redo edit
+        function redoEdit() {
+            const next = editHistory.redo();
+            if (next !== null) {
+                document.getElementById('extractedText').value = next;
+                showToast('Redo', 'success');
+            }
+        }
+
+        // Update formatting state
+        function updateFormatting() {
+            state.currentFormatting.fontFamily = document.getElementById('fontFamily').value;
+            state.currentFormatting.fontSize = parseInt(document.getElementById('fontSize').value);
+            state.currentFormatting.color = document.getElementById('textColor').value;
+
+            // Apply to textarea
+            const textarea = document.getElementById('extractedText');
+            textarea.style.fontFamily = state.currentFormatting.fontFamily;
+            textarea.style.fontSize = state.currentFormatting.fontSize + 'px';
+            textarea.style.color = state.currentFormatting.color;
+        }
+
+        // Toggle format button
+        function toggleFormat(format) {
+            const btn = document.getElementById(format + 'Btn');
+            state.currentFormatting[format] = !state.currentFormatting[format];
+            btn.classList.toggle('active');
+
+            const textarea = document.getElementById('extractedText');
+            if (format === 'bold') textarea.style.fontWeight = state.currentFormatting.bold ? 'bold' : 'normal';
+            if (format === 'italic') textarea.style.fontStyle = state.currentFormatting.italic ? 'italic' : 'normal';
+            if (format === 'underline') textarea.style.textDecoration = state.currentFormatting.underline ? 'underline' : 'none';
+        }
+
+        // Select all text
+        function selectAllText() {
+            const textarea = document.getElementById('extractedText');
+            textarea.select();
+            showToast('All text selected', 'success');
+        }
+
+        // Enhanced keyboard shortcuts with undo/redo
+        const originalSetupKeyboardShortcuts = setupKeyboardShortcuts;
+        setupKeyboardShortcuts = function () {
+            document.addEventListener('keydown', (e) => {
+                if (!settings.shortcuts) return;
+                if (e.ctrlKey) {
+                    switch (e.key) {
+                        case 'z': e.preventDefault(); undoEdit(); break;
+                        case 'y': e.preventDefault(); redoEdit(); break;
+                        case 'b': e.preventDefault(); toggleFormat('bold'); break;
+                        case 'i': e.preventDefault(); toggleFormat('italic'); break;
+                        case 'u': e.preventDefault(); toggleFormat('underline'); break;
+                        case 's': e.preventDefault(); savePDF(); break;
+                        case 'ArrowRight': e.preventDefault(); navigatePDF(1); break;
+                        case 'ArrowLeft': e.preventDefault(); navigatePDF(-1); break;
+                        case '+': case '=': e.preventDefault(); changeZoom(0.25); break;
+                        case '-': e.preventDefault(); changeZoom(-0.25); break;
+                    }
+                }
+            });
+        };
+
+        // Updated setStatus with file movement
+        async function setStatus(status) {
+            if (!state.pdfFiles.length) return;
+            const file = state.pdfFiles[state.currentIndex];
+
+            try {
+                // First update review status
+                await fetch(`${API_BASE}/review/status`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: file.name, status,
+                        reviewer: document.getElementById('reviewerName').value,
+                        notes: document.getElementById('reviewNotes').value
+                    })
+                });
+
+                // If approved or rejected, move to Reviewed PDF folder
+                if (status === 'approved' || status === 'rejected') {
+                    const moveResult = await fetch(`${API_BASE}/pdf/approve-move`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            filename: file.name,
+                            status: status,
+                            reviewer: document.getElementById('reviewerName').value,
+                            notes: document.getElementById('reviewNotes').value
+                        })
+                    });
+
+                    const moveData = await moveResult.json();
+                    if (moveData.success) {
+                        showToast(`File moved to Reviewed PDF: ${moveData.new_filename}`, 'success');
+
+                        // Remove from list and load next
+                        state.pdfFiles.splice(state.currentIndex, 1);
+                        if (state.pdfFiles.length > 0) {
+                            const nextIndex = Math.min(state.currentIndex, state.pdfFiles.length - 1);
+                            await loadPDF(nextIndex);
+                        } else {
+                            showEmptyState();
+                        }
+                        updateFileCounter();
+                        return;
+                    }
+                }
+
+                file.status = status;
+                updateProperties(file);
+                showToast(`Marked as ${status}`, 'success');
+
+                if (settings.autoAdvance && state.currentIndex < state.pdfFiles.length - 1) {
+                    setTimeout(() => navigatePDF(1), 500);
+                }
+            } catch (e) {
+                showToast('Failed to update: ' + e.message, 'error');
+            }
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
