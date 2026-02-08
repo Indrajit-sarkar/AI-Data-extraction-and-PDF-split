@@ -299,10 +299,112 @@ Return ONLY valid JSON."""
             logger.error(f"Error in OpenAI analysis: {str(e)}")
             return {"ai_enhanced": False, "error": str(e)}
     
+    def split_using_python_fallback(self, pdf_content: bytes) -> List[Dict[str, Any]]:
+        """
+        FALLBACK #3: Pure Python splitting using text heuristics
+        Used when Azure Document Intelligence and OpenAI are unavailable
+        
+        Heuristics:
+        1. Detect "Page 1 of X" patterns
+        2. Detect invoice headers (Invoice #, Invoice Number, Bill To)
+        3. Detect blank pages as separators
+        4. Detect date patterns at page start
+        """
+        try:
+            logger.info("🔧 Using Python-only fallback for PDF splitting...")
+            
+            pdf_reader = PyPDF2.PdfReader(io.BytesIO(pdf_content))
+            total_pages = len(pdf_reader.pages)
+            split_points = []
+            current_invoice = 1
+            
+            # Patterns that indicate a new document/invoice
+            new_doc_patterns = [
+                r'page\s*1\s*of\s*\d+',  # "Page 1 of X"
+                r'invoice\s*#?\s*:?\s*[A-Z0-9-]+',  # Invoice number
+                r'invoice\s+number',  # "Invoice Number"
+                r'bill\s+to\s*:',  # "Bill To:"
+                r'sold\s+to\s*:',  # "Sold To:"
+                r'^invoice$',  # Just "INVOICE"
+                r'tax\s+invoice',  # "Tax Invoice"
+                r'purchase\s+order',  # "Purchase Order"
+            ]
+            
+            for page_num in range(1, total_pages + 1):
+                try:
+                    page_text = pdf_reader.pages[page_num - 1].extract_text() or ""
+                    page_text_lower = page_text.lower().strip()
+                    first_500_chars = page_text_lower[:500]
+                    
+                    is_new_document = False
+                    reason = ""
+                    
+                    # First page is always a new document
+                    if page_num == 1:
+                        is_new_document = True
+                        reason = "First page"
+                    else:
+                        # Check for "Page 1 of X" pattern
+                        if re.search(r'page\s*1\s*of\s*\d+', first_500_chars):
+                            is_new_document = True
+                            reason = "Detected 'Page 1 of X' pattern"
+                        
+                        # Check for invoice header patterns at start of page
+                        elif any(re.search(pattern, first_500_chars) for pattern in new_doc_patterns[:4]):
+                            is_new_document = True
+                            reason = "Detected invoice header pattern"
+                        
+                        # Check for blank pages (could be separator)
+                        elif len(page_text.strip()) < 50:
+                            # Skip blank pages, but next non-blank page is new doc
+                            logger.info(f"  Page {page_num}: Blank page detected (potential separator)")
+                    
+                    if is_new_document:
+                        split_points.append({
+                            "invoice_number": current_invoice,
+                            "start_page": page_num,
+                            "barcode": None,
+                            "vendor": None,
+                            "confidence": 0.70,  # Lower confidence for heuristic-based
+                            "reason": f"[Python Fallback] {reason}"
+                        })
+                        logger.info(f"📄 Invoice {current_invoice}: Page {page_num} ({reason})")
+                        current_invoice += 1
+                        
+                except Exception as e:
+                    logger.warning(f"  Page {page_num}: Error extracting text - {e}")
+            
+            if not split_points:
+                # If no split points found, treat as single document
+                split_points.append({
+                    "invoice_number": 1,
+                    "start_page": 1,
+                    "barcode": None,
+                    "vendor": None,
+                    "confidence": 0.50,
+                    "reason": "[Python Fallback] No split points detected, treating as single document"
+                })
+            
+            logger.info(f"✓ Python fallback identified {len(split_points)} document(s)")
+            return split_points
+            
+        except Exception as e:
+            logger.error(f"Error in Python fallback splitting: {e}")
+            # Ultimate fallback: treat as single document
+            return [{
+                "invoice_number": 1,
+                "start_page": 1,
+                "barcode": None,
+                "vendor": None,
+                "confidence": 0.25,
+                "reason": f"[Python Fallback] Error occurred, treating as single document: {e}"
+            }]
+
     def determine_split_points_barcode_vendor(self, pdf_content: bytes) -> List[Dict[str, Any]]:
         """
         BEST SPLITTING LOGIC: Combines Barcode + Vendor + OpenAI + Document Intelligence
         Makes 1 Document Intelligence call + 1 OpenAI call for optimal accuracy
+        Falls back to Python-only splitting if Azure services fail
         """
         logger.info("="*80)
         logger.info("BEST SPLITTING ANALYSIS (Barcode + Vendor + AI)")
@@ -313,14 +415,33 @@ Return ONLY valid JSON."""
         total_pages = len(pdf_reader.pages)
         logger.info(f"Total pages: {total_pages}")
         
-        # Step 1: Detect barcodes (Priority #1)
+        barcodes_by_page = {}
+        vendors_by_page = {}
+        ai_analysis = {"ai_enhanced": False}
+        azure_available = True
+        
+        # Step 1: Detect barcodes (Priority #1) - This is local, no Azure needed
         barcodes_by_page = self.detect_barcodes_on_pages(pdf_content)
         
-        # Step 2: Extract vendors with Document Intelligence (Priority #2)
-        vendors_by_page = self.extract_vendor_names_from_pages(pdf_content)
+        # Step 2: Try Azure Document Intelligence for vendor extraction
+        try:
+            vendors_by_page = self.extract_vendor_names_from_pages(pdf_content)
+        except Exception as e:
+            logger.warning(f"⚠ Azure Document Intelligence failed: {e}")
+            logger.info("  → Falling back to Python-only splitting")
+            azure_available = False
         
-        # Step 3: Use OpenAI for intelligent analysis
-        ai_analysis = self.analyze_with_ai_for_best_splitting(pdf_content, barcodes_by_page, vendors_by_page)
+        # Step 3: Try OpenAI for intelligent analysis (if Azure worked)
+        if azure_available:
+            try:
+                ai_analysis = self.analyze_with_ai_for_best_splitting(pdf_content, barcodes_by_page, vendors_by_page)
+            except Exception as e:
+                logger.warning(f"⚠ OpenAI analysis failed: {e}")
+        
+        # If no Azure data available and no barcodes, use Python fallback
+        if not azure_available and not barcodes_by_page:
+            logger.info("✓ Using Python-only fallback (Azure unavailable, no barcodes)")
+            return self.split_using_python_fallback(pdf_content)
         
         # Step 4: Combine all data for BEST split points
         if ai_analysis.get("ai_enhanced") and ai_analysis.get("split_points"):

@@ -4,8 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal Document Review</title>
+    <title>Document Review & Verification</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
         *,
@@ -17,34 +18,237 @@
         }
 
         :root {
-            --glass: rgba(255, 255, 255, 0.1);
-            --glass-hover: rgba(255, 255, 255, 0.15);
-            --glass-border: rgba(255, 255, 255, 0.15);
-            --accent-green: #34C759;
-            --accent-red: #FF3B30;
-            --accent-blue: #007AFF;
-            --accent-orange: #FF9500;
+            /* TRON LEGACY THEME - Same as index.html */
+            --tron-cyan: #00d4ff;
+            --tron-cyan-dim: rgba(0, 212, 255, 0.25);
+            --tron-cyan-glow: rgba(0, 212, 255, 0.5);
+            --tron-orange: #ff6600;
+            --tron-dark: #0a0a0f;
+            --tron-darker: #050508;
+
+            /* Liquid Glass with Tron glow */
+            --clear-glass: rgba(0, 20, 30, 0.6);
+            --clear-glass-hover: rgba(0, 40, 60, 0.7);
+            --clear-glass-border: rgba(0, 212, 255, 0.4);
+            --blur-amount: 20px;
+
             --text-primary: rgba(255, 255, 255, 0.95);
-            --text-secondary: rgba(255, 255, 255, 0.6);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 20px;
-            --blur: 30px;
+            --text-secondary: rgba(0, 212, 255, 0.7);
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
         }
 
         html,
         body {
             height: 100%;
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(180deg, #0d0d1a 0%, #1a1025 20%, #4a2040 40%, #d86040 60%, #1a3050 100%);
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #000000;
             color: var(--text-primary);
             overflow: hidden;
         }
 
+        /* ============================================
+           STARTUP LOADING OVERLAY
+           ============================================ */
+        .startup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background:
+                repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(0, 212, 255, 0.08) 40px, rgba(0, 212, 255, 0.08) 41px),
+                repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0, 212, 255, 0.08) 40px, rgba(0, 212, 255, 0.08) 41px),
+                radial-gradient(ellipse at center, rgba(0, 40, 60, 0.4) 0%, #000000 70%);
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+        }
+
+        .startup-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .startup-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(32px, 5vw, 56px);
+            font-weight: 700;
+            color: var(--tron-cyan);
+            text-shadow: 0 0 20px var(--tron-cyan), 0 0 40px var(--tron-cyan);
+            letter-spacing: 4px;
+            animation: titlePulse 2s ease-in-out infinite;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        @keyframes titlePulse {
+
+            0%,
+            100% {
+                text-shadow: 0 0 20px var(--tron-cyan), 0 0 40px var(--tron-cyan);
+            }
+
+            50% {
+                text-shadow: 0 0 40px var(--tron-cyan), 0 0 80px var(--tron-cyan-glow);
+            }
+        }
+
+        .startup-loading {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            color: var(--tron-cyan);
+            letter-spacing: 8px;
+            margin-bottom: 25px;
+            animation: loadingBlink 0.8s step-end infinite;
+        }
+
+        @keyframes loadingBlink {
+
+            0%,
+            50% {
+                opacity: 1;
+            }
+
+            51%,
+            100% {
+                opacity: 0.3;
+            }
+        }
+
+        .startup-progress {
+            width: 300px;
+            max-width: 80%;
+            height: 6px;
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid var(--tron-cyan-dim);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 40px;
+        }
+
+        .startup-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--tron-cyan), #00ffaa);
+            box-shadow: 0 0 15px var(--tron-cyan);
+            transition: width 0.2s ease;
+        }
+
+        .startup-start-btn {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            padding: 14px 45px;
+            background: transparent;
+            border: 2px solid var(--tron-cyan);
+            color: var(--tron-cyan);
+            cursor: pointer;
+            letter-spacing: 6px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .startup-start-btn.visible {
+            opacity: 1;
+            visibility: visible;
+            animation: btnPulse 1.5s ease-in-out infinite;
+        }
+
+        .startup-start-btn:hover {
+            background: var(--tron-cyan);
+            color: #000;
+            box-shadow: 0 0 30px var(--tron-cyan);
+        }
+
+        @keyframes btnPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 10px var(--tron-cyan-dim);
+            }
+
+            50% {
+                box-shadow: 0 0 25px var(--tron-cyan);
+            }
+        }
+
+        /* ============================================
+           TRON ANIMATED BACKGROUND
+           ============================================ */
+        .landscape-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background:
+                repeating-linear-gradient(0deg, transparent, transparent 80px, rgba(0, 212, 255, 0.03) 80px, rgba(0, 212, 255, 0.03) 81px),
+                repeating-linear-gradient(90deg, transparent, transparent 80px, rgba(0, 212, 255, 0.03) 80px, rgba(0, 212, 255, 0.03) 81px),
+                radial-gradient(ellipse at center bottom, rgba(0, 40, 60, 0.3) 0%, #000000 70%);
+        }
+
+        .aura-light {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            animation: auraFloat 12s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .aura-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.2) 0%, transparent 70%);
+            top: 10%;
+            left: 5%;
+        }
+
+        .aura-2 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(0, 180, 220, 0.2) 0%, transparent 70%);
+            bottom: 15%;
+            right: 8%;
+            animation-delay: -4s;
+        }
+
+        @keyframes auraFloat {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: translate(20px, -20px) scale(1.1);
+                opacity: 0.8;
+            }
+        }
+
+        /* ============================================
+           MAIN APPLICATION
+           ============================================ */
         .app-container {
+            position: relative;
+            z-index: 1;
             display: flex;
             flex-direction: column;
             height: 100vh;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+
+        .app-container.visible {
+            opacity: 1;
         }
 
         /* Header */
@@ -52,395 +256,396 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px 20px;
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(var(--blur));
-            border-bottom: 1px solid var(--glass-border);
+            padding: 10px 20px;
+            background: var(--clear-glass);
+            backdrop-filter: blur(var(--blur-amount));
+            border-bottom: 1px solid var(--clear-glass-border);
         }
 
         .header-left {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
         }
 
-        .logo {
-            font-size: 20px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #fff, rgba(255, 255, 255, 0.7));
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            color: transparent;
-        }
-
-        .doc-info {
-            font-size: 13px;
+        .back-btn {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid var(--clear-glass-border);
             color: var(--text-secondary);
-            padding: 6px 14px;
-            background: var(--glass);
-            border-radius: 20px;
-        }
-
-        .header-center {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .nav-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            color: white;
+            border-radius: var(--radius-md);
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-size: 13px;
             transition: all 0.2s;
         }
 
-        .nav-btn:hover:not(:disabled) {
-            background: var(--glass-hover);
-            transform: scale(1.05);
+        .back-btn:hover {
+            background: var(--tron-cyan-dim);
+            color: var(--tron-cyan);
         }
 
-        .nav-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-
-        .file-counter {
-            font-size: 14px;
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
             font-weight: 600;
-            padding: 0 12px;
+            color: var(--tron-cyan);
         }
 
-        .header-right {
+        .doc-info {
+            font-size: 12px;
+            color: var(--text-secondary);
+            padding: 5px 12px;
+            background: var(--clear-glass);
+            border: 1px solid var(--clear-glass-border);
+            border-radius: 16px;
+        }
+
+        .header-actions {
             display: flex;
-            align-items: center;
             gap: 10px;
         }
 
         .btn {
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: var(--radius-md);
-            border: 1px solid var(--glass-border);
-            background: var(--glass);
-            backdrop-filter: blur(20px);
-            color: white;
-            cursor: pointer;
             font-size: 13px;
             font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid var(--clear-glass-border);
             display: flex;
             align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
-
-        .btn:hover {
-            background: var(--glass-hover);
-            transform: translateY(-1px);
+            gap: 6px;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, rgba(0, 122, 255, 0.5), rgba(0, 122, 255, 0.3));
-            border-color: rgba(0, 122, 255, 0.4);
+            background: var(--tron-cyan);
+            color: #000;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 15px var(--tron-cyan-glow);
         }
 
         .btn-success {
-            background: linear-gradient(135deg, rgba(52, 199, 89, 0.5), rgba(52, 199, 89, 0.3));
+            background: rgba(52, 199, 89, 0.2);
+            color: #34C759;
             border-color: rgba(52, 199, 89, 0.4);
         }
 
         .btn-danger {
-            background: linear-gradient(135deg, rgba(255, 59, 48, 0.5), rgba(255, 59, 48, 0.3));
+            background: rgba(255, 59, 48, 0.2);
+            color: #FF3B30;
             border-color: rgba(255, 59, 48, 0.4);
         }
 
-        /* Main Content */
+        /* Main Content - Two Panes */
         .main-content {
             flex: 1;
             display: flex;
-            overflow: hidden;
-            padding: 16px;
             gap: 16px;
+            padding: 16px;
+            min-height: 0;
         }
 
-        /* Document Pane */
-        .document-pane {
-            flex: 0 0 55%;
+        /* Left Pane - Extracted Fields */
+        .fields-pane {
+            flex: 0 0 40%;
             display: flex;
             flex-direction: column;
-            background: var(--glass);
-            backdrop-filter: blur(var(--blur));
-            border: 1px solid var(--glass-border);
+            background: var(--clear-glass);
+            backdrop-filter: blur(var(--blur-amount));
+            border: 1px solid var(--clear-glass-border);
             border-radius: var(--radius-lg);
             overflow: hidden;
+            min-height: 0;
         }
 
         .pane-header {
-            padding: 14px 18px;
-            background: rgba(0, 0, 0, 0.2);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--clear-glass-border);
+            background: rgba(0, 0, 0, 0.3);
         }
 
         .pane-title {
             font-size: 14px;
             font-weight: 600;
+            color: var(--text-primary);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .type-badge {
-            padding: 4px 10px;
-            border-radius: 12px;
+        /* Detailed Statistics Bar */
+        .stats-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 10px 14px;
+            background: rgba(0, 0, 0, 0.4);
+            border-bottom: 1px solid var(--clear-glass-border);
+        }
+
+        .stat-item {
             font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
-        .type-PDF {
-            background: rgba(255, 59, 48, 0.2);
-            color: #FF6B6B;
+        .stat-total {
+            background: rgba(0, 212, 255, 0.2);
+            color: var(--tron-cyan);
         }
 
-        .type-DOCX {
-            background: rgba(0, 122, 255, 0.2);
-            color: #5AC8FA;
-        }
-
-        .type-EML {
+        .stat-null {
             background: rgba(255, 149, 0, 0.2);
-            color: #FFD60A;
+            color: #FF9500;
         }
 
-        .type-EXCEL {
+        .stat-high {
             background: rgba(52, 199, 89, 0.2);
             color: #34C759;
         }
 
-        .type-CSV {
-            background: rgba(175, 82, 222, 0.2);
-            color: #BF5AF2;
+        .stat-medium {
+            background: rgba(255, 204, 0, 0.2);
+            color: #FFCC00;
         }
 
-        .document-viewport {
+        .stat-low {
+            background: rgba(255, 59, 48, 0.2);
+            color: #FF3B30;
+        }
+
+        /* Single Consolidated Fields Card */
+        .fields-card {
             flex: 1;
-            overflow: auto;
-            padding: 20px;
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            background: rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+            padding: 12px;
+            min-height: 0;
         }
 
-        .document-viewport::-webkit-scrollbar {
+        .fields-card::-webkit-scrollbar {
             width: 8px;
         }
 
-        .document-viewport::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
+        .fields-card::-webkit-scrollbar-thumb {
+            background: var(--tron-cyan-dim);
             border-radius: 4px;
         }
 
-        #pdfCanvas {
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            border-radius: 4px;
-            background: white;
-        }
-
-        .text-preview {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--radius-md);
-            padding: 20px;
-            font-family: 'Consolas', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            color: var(--text-primary);
-            white-space: pre-wrap;
-            max-height: 100%;
-            overflow-y: auto;
-        }
-
-        .loading-state {
+        .field-row {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            gap: 16px;
-            color: var(--text-secondary);
+            align-items: flex-start;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top-color: var(--accent-blue);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        .field-row:hover {
+            background: rgba(0, 212, 255, 0.25);
+            border-left: 4px solid var(--tron-cyan);
         }
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* Fields Pane */
-        .fields-pane {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: var(--glass);
-            backdrop-filter: blur(var(--blur));
-            border: 1px solid var(--glass-border);
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-        }
-
-        .fields-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 18px;
-            background: rgba(0, 0, 0, 0.2);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .fields-title {
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .fields-count {
-            font-size: 12px;
-            color: var(--text-secondary);
-            padding: 4px 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-        }
-
-        .fields-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .fields-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-        }
-
-        .fields-list::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .fields-list::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 3px;
-        }
-
-        .field-item {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: var(--radius-md);
-            padding: 14px;
-            margin-bottom: 10px;
-            transition: all 0.2s;
-        }
-
-        .field-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.12);
-        }
-
-        .field-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
+        .field-row.active {
+            background: rgba(0, 212, 255, 0.35);
+            border-left: 5px solid var(--tron-cyan);
+            box-shadow: inset 0 0 20px rgba(0, 212, 255, 0.3), 0 0 10px rgba(0, 212, 255, 0.2);
         }
 
         .field-name {
             font-size: 12px;
             font-weight: 600;
-            color: var(--accent-blue);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .field-meta {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .confidence-badge {
-            font-size: 10px;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-weight: 600;
-        }
-
-        .confidence-high {
-            background: rgba(52, 199, 89, 0.2);
-            color: #34C759;
-        }
-
-        .confidence-medium {
-            background: rgba(255, 149, 0, 0.2);
-            color: #FF9500;
-        }
-
-        .confidence-low {
-            background: rgba(255, 59, 48, 0.2);
-            color: #FF3B30;
-        }
-
-        .field-delete {
-            width: 24px;
-            height: 24px;
-            border-radius: 6px;
-            background: rgba(255, 59, 48, 0.1);
-            border: none;
-            color: #FF3B30;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        .field-delete:hover {
-            background: rgba(255, 59, 48, 0.2);
+            color: var(--tron-cyan);
+            min-width: 140px;
+            max-width: 160px;
+            word-break: break-word;
         }
 
         .field-value {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: var(--radius-sm);
-            padding: 10px 12px;
+            flex: 1;
+            font-size: 12px;
             color: var(--text-primary);
-            font-size: 13px;
-            resize: vertical;
-            min-height: 36px;
+            margin-left: 12px;
+            word-break: break-word;
         }
 
-        .field-value:focus {
-            outline: none;
-            border-color: var(--accent-blue);
+        .field-confidence {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-left: 8px;
+            white-space: nowrap;
+        }
+
+        .conf-high {
+            background: rgba(52, 199, 89, 0.3);
+            color: #34C759;
+        }
+
+        .conf-medium {
+            background: rgba(255, 204, 0, 0.3);
+            color: #FFCC00;
+        }
+
+        .conf-low {
+            background: rgba(255, 59, 48, 0.3);
+            color: #FF3B30;
+        }
+
+        .field-actions {
+            display: flex;
+            gap: 4px;
+            margin-left: 8px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .field-row:hover .field-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            width: 22px;
+            height: 22px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-btn:hover {
+            background: var(--tron-cyan-dim);
+            color: var(--tron-cyan);
+        }
+
+        /* Right Pane - Document Preview */
+        .document-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--clear-glass);
+            backdrop-filter: blur(var(--blur-amount));
+            border: 1px solid var(--clear-glass-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        /* Browser-like PDF Viewport */
+        .document-viewport {
+            flex: 1;
+            overflow: auto;
+            background: rgba(10, 14, 20, 0.8);
+            position: relative;
+            min-height: 0;
+        }
+
+        .document-viewport::-webkit-scrollbar {
+            width: 14px;
+            background: #2A2A2E;
+        }
+
+        .document-viewport::-webkit-scrollbar-thumb {
+            background: #777;
+            border: 4px solid #2A2A2E;
+            border-radius: 8px;
+        }
+
+        /* PDF Pages Container */
+        .pages-container {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .page-wrapper {
+            background: white;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .page-wrapper canvas {
+            display: block;
+        }
+
+        /* Text Layer for Find functionality */
+        .text-layer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            opacity: 0.2;
+            line-height: 1.0;
+        }
+
+        .text-layer span {
+            color: transparent;
+            position: absolute;
+            white-space: pre;
+            transform-origin: 0% 0%;
+        }
+
+        .text-layer .highlight {
+            background: rgba(0, 212, 255, 0.5);
+            color: transparent;
+        }
+
+        /* Search Highlight */
+        .search-highlight {
+            position: absolute;
+            background: rgba(255, 255, 0, 0.4);
+            border: 2px solid rgba(255, 150, 0, 0.8);
+            border-radius: 2px;
+            pointer-events: none;
+            animation: highlightPulse 1.5s ease-in-out infinite;
+            z-index: 100;
+            mix-blend-mode: multiply;
+        }
+
+        @keyframes highlightPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 10px var(--tron-cyan);
+            }
+
+            50% {
+                box-shadow: 0 0 30px var(--tron-cyan), 0 0 50px var(--tron-cyan-glow);
+            }
+        }
+
+        .page-indicator {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--clear-glass);
+            backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--clear-glass-border);
+            font-size: 12px;
+            color: var(--tron-cyan);
+            z-index: 100;
         }
 
         .empty-state {
@@ -450,176 +655,191 @@
             justify-content: center;
             height: 100%;
             color: var(--text-secondary);
-            text-align: center;
+            gap: 16px;
             padding: 40px;
         }
 
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
+        .empty-icon {
+            font-size: 64px;
+            opacity: 0.4;
         }
 
-        /* Footer */
-        .footer {
-            padding: 14px 20px;
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(var(--blur));
-            border-top: 1px solid var(--glass-border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        /* Browse Files Button - Transparent Glass Style */
+        .browse-files-btn {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            padding: 16px 32px;
+            background: rgba(0, 212, 255, 0.05);
+            border: 2px solid var(--tron-cyan);
+            border-radius: 8px;
+            color: var(--tron-cyan);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 10px var(--tron-cyan);
+            backdrop-filter: blur(5px);
         }
 
-        .footer-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        .browse-files-btn:hover {
+            background: rgba(0, 212, 255, 0.15);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.4), inset 0 0 20px rgba(0, 212, 255, 0.1);
+            transform: scale(1.05);
         }
 
-        .status-text {
-            font-size: 13px;
-            color: var(--text-secondary);
+        .browse-files-btn:active {
+            transform: scale(0.98);
         }
 
-        .footer-right {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        /* Modal */
-        .modal-overlay {
-            display: none;
+        /* Azure Storage Modal */
+        .azure-modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(10px);
-            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 10000;
+            display: none;
             align-items: center;
             justify-content: center;
         }
 
-        .modal-overlay.active {
+        .azure-modal-overlay.active {
             display: flex;
         }
 
-        .modal {
-            background: rgba(30, 30, 40, 0.95);
-            backdrop-filter: blur(40px);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--radius-lg);
+        .azure-modal {
+            background: rgba(10, 25, 35, 0.95);
+            border: 1px solid var(--tron-cyan-dim);
+            border-radius: 12px;
             width: 90%;
-            max-width: 500px;
-            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+            max-width: 700px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
         }
 
-        .modal-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        .azure-modal-header {
+            padding: 16px 20px;
+            background: rgba(0, 212, 255, 0.1);
+            border-bottom: 1px solid var(--tron-cyan-dim);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .modal-title {
+        .azure-modal-title {
+            font-family: 'Orbitron', sans-serif;
             font-size: 18px;
-            font-weight: 600;
+            color: var(--tron-cyan);
         }
 
-        .modal-body {
-            padding: 24px;
-        }
-
-        .form-group {
-            margin-bottom: 18px;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
+        .azure-modal-close {
+            background: transparent;
+            border: none;
             color: var(--text-secondary);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.2s;
         }
 
-        .form-input {
+        .azure-modal-close:hover {
+            color: var(--tron-orange);
+        }
+
+        .azure-modal-body {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .azure-container-select {
+            margin-bottom: 16px;
+        }
+
+        .azure-container-select label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--tron-cyan);
+            font-size: 12px;
+        }
+
+        .azure-container-select select {
             width: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: var(--radius-sm);
-            padding: 12px 14px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--tron-cyan-dim);
+            border-radius: 6px;
             color: var(--text-primary);
             font-size: 14px;
         }
 
-        .form-input:focus {
-            outline: none;
-            border-color: var(--accent-blue);
+        .azure-file-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--tron-cyan-dim);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
         }
 
-        .modal-footer {
-            padding: 16px 24px;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        .azure-file-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.1);
             display: flex;
-            justify-content: flex-end;
+            align-items: center;
             gap: 12px;
-        }
-
-        /* Upload Modal */
-        .upload-zone {
-            border: 2px dashed rgba(255, 255, 255, 0.2);
-            border-radius: var(--radius-md);
-            padding: 40px;
-            text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.2s;
         }
 
-        .upload-zone:hover {
-            border-color: var(--accent-blue);
-            background: rgba(0, 122, 255, 0.05);
+        .azure-file-item:hover {
+            background: rgba(0, 212, 255, 0.1);
         }
 
-        .upload-zone.dragover {
-            border-color: var(--accent-green);
-            background: rgba(52, 199, 89, 0.1);
+        .azure-file-item.selected {
+            background: rgba(0, 212, 255, 0.2);
+            border-left: 3px solid var(--tron-cyan);
         }
 
-        .upload-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
+        .azure-file-icon {
+            font-size: 20px;
         }
 
-        /* Add Field Modal */
-        .add-field-row {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 12px;
-            align-items: end;
+        .azure-file-name {
+            flex: 1;
+            color: var(--text-primary);
         }
 
-        /* Loading States */
-        .loading-state {
+        .azure-file-size {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .azure-modal-footer {
+            padding: 16px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-top: 1px solid var(--tron-cyan-dim);
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .azure-loading {
+            display: flex;
             align-items: center;
             justify-content: center;
-            height: 100%;
-            color: var(--text-secondary);
-            gap: 16px;
+            padding: 40px;
+            color: var(--tron-cyan);
         }
 
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top-color: var(--accent-blue);
+        .azure-loading-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid var(--tron-cyan-dim);
+            border-top-color: var(--tron-cyan);
             border-radius: 50%;
             animation: spin 1s linear infinite;
+            margin-right: 12px;
         }
 
         @keyframes spin {
@@ -628,629 +848,1428 @@
             }
         }
 
-        /* Text Preview */
-        .text-preview {
+        /* ============================================
+           EMAIL PREVIEW STYLES
+           ============================================ */
+        .email-preview {
             padding: 20px;
-            font-family: 'Consolas', 'Monaco', monospace;
+            max-width: 100%;
+        }
+
+        .email-header {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid var(--tron-cyan-dim);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .email-header-row {
+            display: flex;
+            margin-bottom: 8px;
             font-size: 13px;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            word-break: break-word;
+        }
+
+        .email-header-label {
+            color: var(--tron-cyan);
+            font-weight: 600;
+            min-width: 70px;
+            flex-shrink: 0;
+        }
+
+        .email-header-value {
             color: var(--text-primary);
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: var(--radius-md);
-            height: 100%;
+            word-break: break-word;
+        }
+
+        .email-subject {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--tron-cyan-dim);
+        }
+
+        .email-body {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--clear-glass-border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            line-height: 1.6;
+            max-height: 400px;
             overflow-y: auto;
         }
 
-        /* Back Button */
-        .back-btn {
+        .email-body-html {
+            background: white;
+            color: #333;
+            padding: 20px;
+            border-radius: 6px;
+        }
+
+        .email-body-text {
+            white-space: pre-wrap;
+            font-family: inherit;
+        }
+
+        /* Attachment List */
+        .attachments-section {
+            margin-top: 20px;
+        }
+
+        .attachments-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            color: var(--tron-cyan);
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 16px;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--radius-md);
-            color: white;
-            text-decoration: none;
+        }
+
+        .attachment-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .attachment-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(0, 212, 255, 0.05);
+            border: 1px solid var(--tron-cyan-dim);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            gap: 12px;
+        }
+
+        .attachment-item:hover {
+            background: rgba(0, 212, 255, 0.15);
+            transform: translateX(4px);
+        }
+
+        .attachment-item.active {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: var(--tron-cyan);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .attachment-icon {
+            font-size: 24px;
+        }
+
+        .attachment-info {
+            flex: 1;
+        }
+
+        .attachment-name {
+            color: var(--text-primary);
             font-size: 13px;
             font-weight: 500;
+        }
+
+        .attachment-meta {
+            color: var(--text-secondary);
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        .attachment-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .attachment-btn {
+            padding: 6px 12px;
+            font-size: 11px;
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid var(--tron-cyan-dim);
+            border-radius: 4px;
+            color: var(--tron-cyan);
+            cursor: pointer;
             transition: all 0.2s;
         }
 
-        .back-btn:hover {
-            background: var(--glass-hover);
+        .attachment-btn:hover {
+            background: rgba(0, 212, 255, 0.2);
+        }
+
+        /* Inline Attachment Preview */
+        .attachment-preview-container {
+            margin-top: 16px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--tron-cyan-dim);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .attachment-preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(0, 212, 255, 0.1);
+            border-bottom: 1px solid var(--tron-cyan-dim);
+        }
+
+        .attachment-preview-title {
+            color: var(--tron-cyan);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .attachment-preview-close {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .attachment-preview-content {
+            padding: 16px;
+            max-height: 500px;
+            overflow: auto;
+        }
+
+        .attachment-preview-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+
+        .attachment-preview-content iframe {
+            width: 100%;
+            height: 400px;
+            border: none;
+            border-radius: 4px;
+            background: white;
+        }
+
+        /* Document Type Previews */
+        .docx-content,
+        .excel-content,
+        .csv-content {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            border-radius: 8px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            line-height: 1.6;
+        }
+
+        .docx-content h1 {
+            font-size: 24px;
+            margin: 16px 0;
+            color: #1a1a1a;
+        }
+
+        .docx-content h2 {
+            font-size: 20px;
+            margin: 14px 0;
+            color: #333;
+        }
+
+        .docx-content h3 {
+            font-size: 16px;
+            margin: 12px 0;
+            color: #444;
+        }
+
+        .docx-content p {
+            margin: 8px 0;
+        }
+
+        .docx-table,
+        .excel-table,
+        .csv-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 13px;
+        }
+
+        .docx-table td,
+        .docx-table th,
+        .excel-table td,
+        .excel-table th,
+        .csv-table td,
+        .csv-table th {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .excel-table th,
+        .csv-table th {
+            background: #f0f0f0;
+            font-weight: 600;
+        }
+
+        .excel-table tr:nth-child(even),
+        .csv-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .sheet-name {
+            color: #0078D4;
+            font-size: 16px;
+            margin: 20px 0 10px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #0078D4;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            padding: 8px 16px;
+            background: rgba(0, 0, 0, 0.5);
+            border-top: 1px solid var(--clear-glass-border);
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--tron-cyan);
+            animation: statusPulse 2s infinite;
+        }
+
+        @keyframes statusPulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="app-container">
+    <!-- Startup Loading Overlay -->
+    <div class="startup-overlay" id="startupOverlay">
+        <div class="startup-title">DOCUMENT REVIEW</div>
+        <div class="startup-loading" id="loadingText">INITIALIZING...</div>
+        <div class="startup-progress">
+            <div class="startup-progress-bar" id="progressBar"></div>
+        </div>
+        <button class="startup-start-btn" id="startBtn">START</button>
+    </div>
+
+    <!-- TRON Background -->
+    <div class="landscape-bg">
+        <div class="aura-light aura-1"></div>
+        <div class="aura-light aura-2"></div>
+    </div>
+
+    <!-- Main App -->
+    <div class="app-container" id="appContainer">
         <!-- Header -->
         <header class="header">
             <div class="header-left">
-                <a href="/" class="back-btn">← Back</a>
-                <div class="logo">Document Review</div>
-                <div class="doc-info" id="docInfo">No documents loaded</div>
+                <button class="back-btn" onclick="window.location.href='/'">← Back</button>
+                <span class="logo">Document Review</span>
+                <span class="doc-info" id="docInfo">No document loaded</span>
             </div>
-            <div class="header-center">
-                <button class="nav-btn" id="prevBtn" onclick="navigateDoc(-1)" disabled>◀</button>
-                <span class="file-counter" id="fileCounter">0 / 0</span>
-                <button class="nav-btn" id="nextBtn" onclick="navigateDoc(1)" disabled>▶</button>
-            </div>
-            <div class="header-right">
-                <button class="btn" onclick="openUploadModal()">📁 Upload Files</button>
-                <button class="btn" onclick="addMoreDocuments()">➕ Add More</button>
-                <button class="btn btn-primary" onclick="extractFields()">⚡ Extract Fields</button>
+            <div class="header-actions">
+                <button class="btn" onclick="window.location.href='/settings'"
+                    style="background: var(--tron-cyan-dim); border-color: var(--tron-cyan); color: var(--tron-cyan);">⚙️
+                    Settings</button>
+                <button class="btn btn-primary" id="uploadBtn">📁 Upload</button>
+                <button class="btn" id="azureStorageBtn"
+                    style="background: linear-gradient(135deg, rgba(0, 120, 212, 0.2), rgba(0, 120, 212, 0.1)); border-color: rgba(0, 120, 212, 0.5); color: #0078D4;">☁️
+                    Azure Storage</button>
+                <button class="btn btn-primary" id="extractBtn">⚡ Extract Fields</button>
+                <button class="btn btn-success" id="approveBtn">✓ Approve</button>
+                <button class="btn btn-danger" id="rejectBtn">✕ Reject</button>
             </div>
         </header>
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Document Preview Pane -->
-            <div class="document-pane">
+            <!-- Left Pane - Extracted Fields (Single Card) -->
+            <div class="fields-pane">
                 <div class="pane-header">
-                    <div class="pane-title">
-                        <span>Document Preview</span>
-                        <span class="type-badge" id="typeBadge">-</span>
-                    </div>
+                    <div class="pane-title">📋 Extracted Fields</div>
+                    <button class="btn" style="padding: 4px 10px; font-size: 11px;" onclick="addNewField()">+
+                        Add</button>
                 </div>
-                <div class="document-viewport" id="documentViewport">
+                <!-- Detailed Statistics -->
+                <div class="stats-bar" id="statsBar">
+                    <span class="stat-item stat-total">Total Fields: <strong id="statTotal">0</strong></span>
+                    <span class="stat-item stat-null">Null Fields: <strong id="statNull">0</strong></span>
+                    <span class="stat-item stat-high">≥95% Confidence: <strong id="statHigh">0</strong></span>
+                    <span class="stat-item stat-medium">80-94%: <strong id="statMedium">0</strong></span>
+                    <span class="stat-item stat-low">&lt;80%: <strong id="statLow">0</strong></span>
+                </div>
+                <!-- Single Card with all fields -->
+                <div class="fields-card" id="fieldsCard">
                     <div class="empty-state">
-                        <div class="empty-state-icon">📄</div>
-                        <div>Upload documents to begin review</div>
+                        <div class="empty-icon">📋</div>
+                        <div>No fields extracted yet</div>
+                        <div style="font-size: 11px;">Upload a document and click Extract</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Fields Editor Pane -->
-            <div class="fields-pane">
-                <div class="fields-header">
-                    <div class="fields-title">Extracted Fields</div>
-                    <div class="fields-actions">
-                        <span class="fields-count" id="fieldsCount">0 fields</span>
-                        <button class="btn" onclick="openAddFieldModal()">+ Add Field</button>
-                    </div>
+            <!-- Right Pane - Document Preview -->
+            <div class="document-pane">
+                <div class="pane-header">
+                    <div class="pane-title">📄 Document Preview</div>
+                    <span id="pageIndicatorHeader" style="font-size: 12px; color: var(--tron-cyan);"></span>
                 </div>
-                <div class="fields-list" id="fieldsList">
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📋</div>
-                        <div>Click "Extract Fields" to analyze document</div>
+                <div class="document-viewport" id="documentViewport">
+                    <div class="empty-state" id="previewEmptyState">
+                        <div class="empty-icon">📄</div>
+                        <button class="browse-files-btn" id="browseFilesBtn"
+                            onclick="document.getElementById('fileInput').click()">
+                            📂 Browse Files
+                        </button>
+                        <div style="font-size: 11px; margin-top: 8px; opacity: 0.7;">or drag and drop files here</div>
                     </div>
                 </div>
             </div>
         </main>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <div class="footer-left">
-                <span class="status-text" id="statusText">Ready</span>
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <div class="status-indicator"></div>
+                <span id="statusText">Ready</span>
             </div>
-            <div class="footer-right">
-                <button class="btn" onclick="saveFields()">💾 Save Changes</button>
-                <button class="btn btn-success" onclick="openApprovalModal('approve')">✓ Approve</button>
-                <button class="btn btn-danger" onclick="openApprovalModal('reject')">✕ Reject</button>
-            </div>
+            <div id="statusRight"></div>
         </footer>
     </div>
 
-    <!-- Upload Modal -->
-    <div class="modal-overlay" id="uploadModal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">Upload Documents</div>
+    <!-- Azure Storage Modal -->
+    <div class="azure-modal-overlay" id="azureModal">
+        <div class="azure-modal">
+            <div class="azure-modal-header">
+                <span class="azure-modal-title">☁️ Azure Blob Storage</span>
+                <button class="azure-modal-close" onclick="closeAzureModal()">×</button>
             </div>
-            <div class="modal-body">
-                <div class="upload-zone" id="uploadZone">
-                    <div class="upload-icon">📤</div>
-                    <div>Click to select files or drag & drop</div>
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
-                        Supports: PDF, DOCX, EML, Excel, CSV
+            <div class="azure-modal-body" id="azureModalBody">
+                <div class="azure-loading" id="azureLoading">
+                    <div class="azure-loading-spinner"></div>
+                    <span>Loading containers...</span>
+                </div>
+                <div id="azureContent" style="display: none;">
+                    <div class="azure-container-select">
+                        <label>SELECT CONTAINER</label>
+                        <select id="containerSelect" onchange="loadContainerBlobs()">
+                            <option value="">-- Select a container --</option>
+                        </select>
                     </div>
-                    <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: center;">
-                        <button class="btn" onclick="document.getElementById('fileInput').click(); event.stopPropagation();">
-                            📄 Select Files
-                        </button>
-                        <button class="btn" onclick="document.getElementById('folderInput').click(); event.stopPropagation();">
-                            📁 Select Folder
-                        </button>
+                    <div class="azure-file-list" id="blobList">
+                        <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
+                            Select a container to view files
+                        </div>
                     </div>
                 </div>
-                <input type="file" id="fileInput" multiple accept=".pdf,.docx,.doc,.eml,.xlsx,.xls,.csv"
-                    style="display: none;">
-                <input type="file" id="folderInput" webkitdirectory directory multiple
-                    style="display: none;">
+                <div id="azureError"
+                    style="display: none; padding: 20px; color: var(--tron-orange); text-align: center;"></div>
             </div>
-            <div class="modal-footer">
-                <button class="btn" onclick="closeModal('uploadModal')">Cancel</button>
-            </div>
-        </div>
-    </div>
-    <!-- Add Field Modal -->
-    <div class="modal-overlay" id="addFieldModal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title">Add New Field</div>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">Field Name</label>
-                    <input type="text" class="form-input" id="newFieldName" placeholder="e.g. Invoice_Number">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Field Value</label>
-                    <textarea class="form-input" id="newFieldValue" placeholder="Enter value..." rows="3"></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn" onclick="closeModal('addFieldModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="addNewField()">Add Field</button>
+            <div class="azure-modal-footer">
+                <span id="selectedFileInfo" style="color: var(--text-secondary); font-size: 12px;">No file
+                    selected</span>
+                <button class="btn btn-primary" id="loadAzureFileBtn" disabled onclick="loadSelectedAzureFile()">📥 Load
+                    File</button>
             </div>
         </div>
     </div>
 
-    <!-- Approval Modal -->
-    <div class="modal-overlay" id="approvalModal">
-        <div class="modal">
-            <div class="modal-header">
-                <div class="modal-title" id="approvalTitle">Confirm Action</div>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">Reviewer Name</label>
-                    <input type="text" class="form-input" id="reviewerName" placeholder="Enter your name">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Notes (Optional)</label>
-                    <textarea class="form-input" id="reviewNotes" placeholder="Add any notes..." rows="3"></textarea>
-                </div>
-                <div class="form-group" id="rejectReasonGroup" style="display: none;">
-                    <label class="form-label">Rejection Reason</label>
-                    <input type="text" class="form-input" id="rejectReason"
-                        placeholder="Why is this document rejected?">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn" onclick="closeModal('approvalModal')">Cancel</button>
-                <button class="btn btn-success" id="confirmApproveBtn"
-                    onclick="confirmApproval('approve')">Approve</button>
-                <button class="btn btn-danger" id="confirmRejectBtn" onclick="confirmApproval('reject')"
-                    style="display: none;">Reject</button>
-            </div>
-        </div>
-    </div>
+    <!-- Hidden File Input -->
+    <input type="file" id="fileInput" accept=".pdf,.docx,.xlsx,.eml,.csv,.png,.jpg,.jpeg" style="display: none;">
 
     <script>
         // PDF.js configuration
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
         // State
-        let documents = [];
-        let currentIndex = 0;
+        let currentFile = null;
         let extractedFields = {};
         let pdfDoc = null;
-        let currentPage = 1;
+        let pdfScale = 1.3;
+        let currentDocIndex = 0;
 
-        // API Helpers
-        async function api(endpoint, options = {}) {
-            const response = await fetch(`/api${endpoint}`, {
-                headers: { 'Content-Type': 'application/json' },
-                ...options
-            });
-            return response.json();
+        // DOM Elements
+        const startupOverlay = document.getElementById('startupOverlay');
+        const progressBar = document.getElementById('progressBar');
+        const loadingText = document.getElementById('loadingText');
+        const startBtn = document.getElementById('startBtn');
+        const appContainer = document.getElementById('appContainer');
+        const docInfo = document.getElementById('docInfo');
+        const documentViewport = document.getElementById('documentViewport');
+        const fieldsCard = document.getElementById('fieldsCard');
+        const statusText = document.getElementById('statusText');
+
+        // ============================================
+        // STARTUP ANIMATION
+        // ============================================
+        function runStartupSequence() {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15 + 8;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    loadingText.textContent = 'READY';
+                    startBtn.classList.add('visible');
+                }
+                progressBar.style.width = progress + '%';
+            }, 150);
         }
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', async () => {
-            setupDragDrop();
-            setupFileInput();
-            // Check if there are pre-loaded documents from processing
-            await checkForPreloadedDocs();
+        startBtn.addEventListener('click', () => {
+            startupOverlay.classList.add('hidden');
+            appContainer.classList.add('visible');
         });
 
-        // Check for pre-loaded documents (from auto-redirect after processing)
-        async function checkForPreloadedDocs() {
-            try {
-                const result = await api('/review/documents');
-                if (result.success && result.documents && result.documents.length > 0) {
-                    documents = result.documents;
-                    currentIndex = result.currentIndex || 0;
-                    setStatus(`Loaded ${documents.length} document(s) from session`);
-                    updateUI();
-                    loadCurrentDocument();
-                }
-            } catch (err) {
-                console.log('No pre-loaded documents');
-            }
-        }
+        // ============================================
+        // FILE UPLOAD
+        // ============================================
+        document.getElementById('uploadBtn').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
 
-        // Drag & Drop
-        function setupDragDrop() {
-            const zone = document.getElementById('uploadZone');
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-            zone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                zone.classList.add('dragover');
-            });
+            currentFile = file;
+            docInfo.textContent = file.name;
+            setStatus(`Loading ${file.name}...`);
 
-            zone.addEventListener('dragleave', () => {
-                zone.classList.remove('dragover');
-            });
-
-            zone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                zone.classList.remove('dragover');
-                handleFiles(e.dataTransfer.files);
-            });
-        }
-
-        function setupFileInput() {
-            const fileInput = document.getElementById('fileInput');
-            const folderInput = document.getElementById('folderInput');
-            
-            fileInput.addEventListener('change', (e) => {
-                handleFiles(e.target.files);
-            });
-            
-            folderInput.addEventListener('change', (e) => {
-                handleFiles(e.target.files);
-            });
-        }
-
-        async function handleFiles(files) {
-            if (!files.length) return;
-
+            // Upload to server using /api/review/add endpoint
             const formData = new FormData();
-            for (const file of files) {
-                formData.append('files', file);
-            }
-
-            setStatus('Uploading files...');
+            formData.append('files', file);  // Backend expects 'files' field
 
             try {
-                const response = await fetch('/api/review/upload', {
+                const response = await fetch('/api/review/add', {
                     method: 'POST',
                     body: formData
                 });
-                const result = await response.json();
+                const data = await response.json();
 
-                if (result.success) {
-                    documents = result.documents;
-                    currentIndex = 0;
-                    setStatus(`Loaded ${documents.length} document(s)`);
-                    closeModal('uploadModal');
-                    updateUI();
-                    loadCurrentDocument();
+                if (data.success) {
+                    // Track the index (last added document)
+                    currentDocIndex = (data.total || 1) - 1;
+                    setStatus(`Loaded: ${file.name} (index ${currentDocIndex})`);
+                    // Load preview
+                    await loadDocumentPreview(file);
                 } else {
-                    setStatus('Upload failed: ' + result.error);
+                    setStatus(`Error: ${data.error}`);
+                    await loadDocumentPreview(file);
                 }
-            } catch (err) {
-                setStatus('Error: ' + err.message);
+            } catch (error) {
+                setStatus(`Upload error: ${error.message}`);
+                // Still try to preview locally
+                await loadDocumentPreview(file);
             }
-        }
+        });
 
-        function updateUI() {
-            const total = documents.length;
-            document.getElementById('fileCounter').textContent = total ? `${currentIndex + 1} / ${total}` : '0 / 0';
-            document.getElementById('prevBtn').disabled = currentIndex <= 0;
-            document.getElementById('nextBtn').disabled = currentIndex >= total - 1;
+        // ============================================
+        // DOCUMENT PREVIEW - Full Scrollable
+        // ============================================
+        let currentEmlCache = null; // Store EML cache key for attachment access
+        let currentAttachments = []; // Store attachments list
 
-            if (documents[currentIndex]) {
-                const doc = documents[currentIndex];
-                document.getElementById('docInfo').textContent = doc.name;
-                document.getElementById('typeBadge').textContent = doc.type;
-                document.getElementById('typeBadge').className = `type-badge type-${doc.type}`;
-            }
-        }
+        async function loadDocumentPreview(file) {
+            const fileType = file.name.split('.').pop().toLowerCase();
 
-        async function loadCurrentDocument() {
-            if (!documents.length) return;
-
-            const doc = documents[currentIndex];
-            const viewport = document.getElementById('documentViewport');
-
-            viewport.innerHTML = '<div class="loading-state"><div class="spinner"></div><div>Loading document...</div></div>';
-
-            if (doc.type === 'PDF') {
-                await loadPDF(currentIndex);
-            } else if (doc.type === 'CSV' || doc.type === 'EML') {
-                await loadTextContent(currentIndex);
+            if (fileType === 'pdf') {
+                await loadPDFPreview(file);
+            } else if (['png', 'jpg', 'jpeg', 'gif'].includes(fileType)) {
+                loadImagePreview(file);
+            } else if (['eml', 'docx', 'xlsx', 'xls', 'csv'].includes(fileType)) {
+                // Parse via backend API
+                await loadParsedPreview(file, fileType);
             } else {
-                viewport.innerHTML = `<div class="text-preview">Document Type: ${doc.type}\n\nFile: ${doc.name}\nSize: ${formatSize(doc.size)}\n\nClick "Extract Fields" to analyze this document.</div>`;
-            }
-
-            // Load cached fields if available
-            if (extractedFields[doc.name]) {
-                renderFields(extractedFields[doc.name]);
-            } else {
-                document.getElementById('fieldsList').innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📋</div>
-                        <div>Click "Extract Fields" to analyze document</div>
-                    </div>`;
-                document.getElementById('fieldsCount').textContent = '0 fields';
+                loadGenericPreview(file, fileType);
             }
         }
 
-        async function loadPDF(index) {
+        async function loadPDFPreview(file) {
             try {
-                const response = await fetch(`/api/review/document/${index}/file`);
+                const arrayBuffer = await file.arrayBuffer();
+                pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const totalPages = pdfDoc.numPages;
+
+                // Create pages container
+                documentViewport.innerHTML = '<div class="pages-container" id="pagesContainer"></div>';
+                const pagesContainer = document.getElementById('pagesContainer');
+
+                // Render ALL pages
+                for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                    const page = await pdfDoc.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: pdfScale });
+
+                    // Page wrapper
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'page-wrapper';
+                    wrapper.id = `page-${pageNum}`;
+                    wrapper.style.width = viewport.width + 'px';
+                    wrapper.style.height = viewport.height + 'px';
+
+                    // Canvas for rendering
+                    const canvas = document.createElement('canvas');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    // Render page
+                    const context = canvas.getContext('2d');
+                    await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                    // Text layer for find functionality
+                    const textLayer = document.createElement('div');
+                    textLayer.className = 'text-layer';
+                    textLayer.style.width = viewport.width + 'px';
+                    textLayer.style.height = viewport.height + 'px';
+
+                    // Get text content
+                    const textContent = await page.getTextContent();
+                    textContent.items.forEach(item => {
+                        const span = document.createElement('span');
+                        span.textContent = item.str;
+                        const x = item.transform[4] * pdfScale;
+                        const y = viewport.height - (item.transform[5] * pdfScale) - (item.height * pdfScale);
+                        span.style.left = x + 'px';
+                        span.style.top = y + 'px';
+                        span.style.fontSize = (item.height * pdfScale) + 'px';
+                        span.dataset.text = item.str.toLowerCase();
+                        textLayer.appendChild(span);
+                    });
+
+                    wrapper.appendChild(canvas);
+                    wrapper.appendChild(textLayer);
+                    pagesContainer.appendChild(wrapper);
+                }
+
+                document.getElementById('pageIndicatorHeader').textContent = `${totalPages} page${totalPages > 1 ? 's' : ''}`;
+                documentViewport.addEventListener('scroll', updatePageIndicator);
+                setStatus(`Loaded ${totalPages} page${totalPages > 1 ? 's' : ''}`);
+
+            } catch (error) {
+                console.error('PDF load error:', error);
+                setStatus(`Error loading PDF: ${error.message}`);
+            }
+        }
+
+        function loadImagePreview(file) {
+            const url = URL.createObjectURL(file);
+            documentViewport.innerHTML = `
+                <div class="pages-container">
+                    <div class="page-wrapper" style="max-width: 100%;">
+                        <img src="${url}" style="max-width: 100%; height: auto;" alt="Document Preview">
+                    </div>
+                </div>`;
+            document.getElementById('pageIndicatorHeader').textContent = 'Image';
+            setStatus('Image loaded');
+        }
+
+        async function loadParsedPreview(file, fileType) {
+            setStatus(`Parsing ${file.name}...`);
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/preview/parse', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to parse file');
+                }
+
+                switch (data.type) {
+                    case 'eml':
+                        loadEMLPreview(data);
+                        break;
+                    case 'docx':
+                    case 'xlsx':
+                    case 'csv':
+                        loadParsedDocumentPreview(data);
+                        break;
+                    default:
+                        loadGenericPreview(file, fileType);
+                }
+            } catch (error) {
+                console.error('Parse error:', error);
+                setStatus(`Error: ${error.message}`);
+                loadGenericPreview(file, fileType);
+            }
+        }
+
+        function loadEMLPreview(data) {
+            currentEmlCache = data.cacheKey;
+            currentAttachments = data.attachments || [];
+
+            const headers = data.headers;
+            const hasAttachments = currentAttachments.length > 0;
+
+            // Build email preview HTML
+            let html = `
+                <div class="email-preview">
+                    <div class="email-header">
+                        <div class="email-header-row">
+                            <span class="email-header-label">From:</span>
+                            <span class="email-header-value">${escapeHtml(headers.from)}</span>
+                        </div>
+                        <div class="email-header-row">
+                            <span class="email-header-label">To:</span>
+                            <span class="email-header-value">${escapeHtml(headers.to)}</span>
+                        </div>
+                        ${headers.cc ? `
+                        <div class="email-header-row">
+                            <span class="email-header-label">CC:</span>
+                            <span class="email-header-value">${escapeHtml(headers.cc)}</span>
+                        </div>` : ''}
+                        <div class="email-header-row">
+                            <span class="email-header-label">Date:</span>
+                            <span class="email-header-value">${escapeHtml(headers.date)}</span>
+                        </div>
+                        <div class="email-subject">📧 ${escapeHtml(headers.subject)}</div>
+                    </div>
+                    
+                    <div class="email-body">
+                        ${data.bodyHtml ?
+                    `<div class="email-body-html">${data.bodyHtml}</div>` :
+                    `<div class="email-body-text">${escapeHtml(data.bodyText || 'No content')}</div>`
+                }
+                    </div>`;
+
+            // Add attachments section
+            if (hasAttachments) {
+                html += `
+                    <div class="attachments-section">
+                        <div class="attachments-title">📎 Attachments (${currentAttachments.length})</div>
+                        <div class="attachment-list">
+                            ${currentAttachments.map((att, idx) => `
+                                <div class="attachment-item" onclick="previewAttachment(${idx})" data-index="${idx}">
+                                    <span class="attachment-icon">${getAttachmentIcon(att.filename)}</span>
+                                    <div class="attachment-info">
+                                        <div class="attachment-name">${escapeHtml(att.filename)}</div>
+                                        <div class="attachment-meta">${formatFileSize(att.size)} • ${att.contentType}</div>
+                                    </div>
+                                    <div class="attachment-actions">
+                                        <button class="attachment-btn" onclick="event.stopPropagation(); downloadAttachment(${idx})">⬇ Download</button>
+                                        <button class="attachment-btn" onclick="event.stopPropagation(); previewAttachment(${idx})">👁 Preview</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div id="attachmentPreviewArea"></div>
+                    </div>`;
+            }
+
+            html += '</div>';
+            documentViewport.innerHTML = html;
+
+            const attachmentCount = hasAttachments ? ` + ${currentAttachments.length} attachments` : '';
+            document.getElementById('pageIndicatorHeader').textContent = `EML${attachmentCount}`;
+            setStatus(`Email loaded with ${currentAttachments.length} attachment(s)`);
+        }
+
+        function loadParsedDocumentPreview(data) {
+            documentViewport.innerHTML = `
+                <div class="pages-container">
+                    <div class="page-wrapper" style="max-width: 100%; padding: 20px;">
+                        ${data.html}
+                    </div>
+                </div>`;
+            document.getElementById('pageIndicatorHeader').textContent = data.type.toUpperCase();
+            setStatus(`${data.type.toUpperCase()} preview loaded`);
+        }
+
+        function loadGenericPreview(file, fileType) {
+            documentViewport.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📄</div>
+                    <div>${file.name}</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">
+                        ${fileType.toUpperCase()} files are processed for extraction but not previewed.
+                    </div>
+                </div>`;
+            document.getElementById('pageIndicatorHeader').textContent = fileType.toUpperCase();
+        }
+
+        // ============================================
+        // ATTACHMENT PREVIEW/DOWNLOAD
+        // ============================================
+        async function previewAttachment(index) {
+            if (!currentEmlCache || !currentAttachments[index]) return;
+
+            const att = currentAttachments[index];
+            const contentType = att.contentType.toLowerCase();
+            const filename = att.filename;
+            const ext = filename.split('.').pop().toLowerCase();
+
+            // Highlight selected attachment
+            document.querySelectorAll('.attachment-item').forEach(el => el.classList.remove('active'));
+            document.querySelector(`.attachment-item[data-index="${index}"]`)?.classList.add('active');
+
+            const previewArea = document.getElementById('attachmentPreviewArea');
+            const attachmentUrl = `/api/preview/attachment/${currentEmlCache}/${index}`;
+
+            let previewContent = '';
+
+            // Determine preview type
+            if (contentType.includes('image') || ['png', 'jpg', 'jpeg', 'gif', 'bmp'].includes(ext)) {
+                previewContent = `<img src="${attachmentUrl}" alt="${escapeHtml(filename)}">`;
+            } else if (ext === 'pdf' || contentType.includes('pdf')) {
+                previewContent = `<iframe src="${attachmentUrl}"></iframe>`;
+            } else if (['docx', 'xlsx', 'csv'].includes(ext)) {
+                // These need parsing - fetch and parse
+                previewContent = await parseAttachmentForPreview(index, ext);
+            } else {
+                previewContent = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <div style="font-size: 48px; margin-bottom: 16px;">📄</div>
+                        <div>${escapeHtml(filename)}</div>
+                        <div style="font-size: 12px; margin-top: 8px;">Preview not available for this file type</div>
+                        <button class="btn btn-primary" style="margin-top: 16px;" onclick="downloadAttachment(${index})">⬇ Download File</button>
+                    </div>`;
+            }
+
+            previewArea.innerHTML = `
+                <div class="attachment-preview-container">
+                    <div class="attachment-preview-header">
+                        <span class="attachment-preview-title">📎 ${escapeHtml(filename)}</span>
+                        <button class="attachment-preview-close" onclick="closeAttachmentPreview()">×</button>
+                    </div>
+                    <div class="attachment-preview-content">
+                        ${previewContent}
+                    </div>
+                </div>`;
+
+            // Scroll to preview
+            previewArea.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function parseAttachmentForPreview(index, ext) {
+            try {
+                // Fetch the attachment
+                const response = await fetch(`/api/preview/attachment/${currentEmlCache}/${index}`);
                 const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
+                const file = new File([blob], `attachment.${ext}`);
 
-                pdfDoc = await pdfjsLib.getDocument(url).promise;
-                const page = await pdfDoc.getPage(1);
+                // Parse it
+                const formData = new FormData();
+                formData.append('file', file);
 
-                const scale = 1.5;
-                const viewport = page.getViewport({ scale });
+                const parseResponse = await fetch('/api/preview/parse', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await parseResponse.json();
 
-                const canvas = document.createElement('canvas');
-                canvas.id = 'pdfCanvas';
-                const context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-
-                document.getElementById('documentViewport').innerHTML = '';
-                document.getElementById('documentViewport').appendChild(canvas);
-
-                await page.render({ canvasContext: context, viewport }).promise;
-
-            } catch (err) {
-                document.getElementById('documentViewport').innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">❌</div>
-                        <div>Error loading PDF: ${err.message}</div>
-                    </div>`;
-            }
-        }
-
-        async function loadTextContent(index) {
-            try {
-                const result = await api(`/review/document/${index}/content`);
-                if (result.success) {
-                    document.getElementById('documentViewport').innerHTML = `<div class="text-preview">${escapeHtml(result.content)}</div>`;
+                if (data.success && data.html) {
+                    return data.html;
                 }
-            } catch (err) {
-                document.getElementById('documentViewport').innerHTML = `<div class="text-preview">Error loading content</div>`;
+                return '<div style="padding: 20px;">Could not parse attachment</div>';
+            } catch (e) {
+                return `<div style="padding: 20px;">Error: ${e.message}</div>`;
             }
         }
 
-        function navigateDoc(direction) {
-            const newIndex = currentIndex + direction;
-            if (newIndex >= 0 && newIndex < documents.length) {
-                currentIndex = newIndex;
-                updateUI();
-                loadCurrentDocument();
-            }
+        function closeAttachmentPreview() {
+            const previewArea = document.getElementById('attachmentPreviewArea');
+            if (previewArea) previewArea.innerHTML = '';
+            document.querySelectorAll('.attachment-item').forEach(el => el.classList.remove('active'));
         }
 
-        async function extractFields() {
-            if (!documents.length) {
-                setStatus('No documents to extract');
+        function downloadAttachment(index) {
+            if (!currentEmlCache || !currentAttachments[index]) return;
+
+            const att = currentAttachments[index];
+            const url = `/api/preview/attachment/${currentEmlCache}/${index}`;
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = att.filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function getAttachmentIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const icons = {
+                'pdf': '📕',
+                'docx': '📘', 'doc': '📘',
+                'xlsx': '📗', 'xls': '📗',
+                'csv': '📊',
+                'png': '🖼️', 'jpg': '🖼️', 'jpeg': '🖼️', 'gif': '🖼️',
+                'txt': '📝',
+                'zip': '📦', 'rar': '📦'
+            };
+            return icons[ext] || '📎';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updatePageIndicator() {
+            // Simple page tracking based on scroll position
+            const containers = document.querySelectorAll('.page-wrapper');
+            if (!containers.length) return;
+
+            const viewportRect = documentViewport.getBoundingClientRect();
+            const viewportMid = viewportRect.top + viewportRect.height / 2;
+
+            let currentPage = 1;
+            containers.forEach((container, idx) => {
+                const rect = container.getBoundingClientRect();
+                if (rect.top < viewportMid && rect.bottom > viewportMid) {
+                    currentPage = idx + 1;
+                }
+            });
+
+            document.getElementById('pageIndicatorHeader').textContent = `Page ${currentPage} of ${containers.length}`;
+        }
+
+        // ============================================
+        // FIELD EXTRACTION
+        // ============================================
+        document.getElementById('extractBtn').addEventListener('click', async () => {
+            if (!currentFile) {
+                setStatus('Please upload a document first');
                 return;
             }
 
-            const doc = documents[currentIndex];
-            setStatus(`Extracting fields from ${doc.name}...`);
-
-            document.getElementById('fieldsList').innerHTML = '<div class="loading-state"><div class="spinner"></div><div>Extracting fields...</div></div>';
+            setStatus('Extracting fields...');
 
             try {
-                const result = await api(`/review/document/${currentIndex}/extract`, { method: 'POST' });
+                const response = await fetch(`/api/review/document/${currentDocIndex}/extract`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
 
-                if (result.success) {
-                    extractedFields[doc.name] = result.fields;
-                    renderFields(result.fields);
-                    setStatus(`Extracted ${Object.keys(result.fields).length} fields`);
+                if (data.success && data.fields) {
+                    extractedFields = data.fields;
+                    renderFields();
+                    updateStatistics();
+                    setStatus(`Extracted ${Object.keys(extractedFields).length} fields`);
                 } else {
-                    setStatus('Extraction failed: ' + result.error);
-                    document.getElementById('fieldsList').innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-state-icon">❌</div>
-                            <div>Extraction failed: ${result.error}</div>
-                        </div>`;
+                    setStatus(`Extraction error: ${data.error || 'Unknown error'}`);
                 }
-            } catch (err) {
-                setStatus('Error: ' + err.message);
+            } catch (error) {
+                setStatus(`Error: ${error.message}`);
             }
+        });
+
+        // ============================================
+        // RENDER FIELDS - Single Consolidated Card
+        // ============================================
+
+        // Helper to format complex values (arrays, objects) into readable strings
+        function formatFieldValue(value) {
+            if (value === null || value === undefined) return '(empty)';
+            if (typeof value === 'string') return value || '(empty)';
+            if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+
+            // Handle arrays
+            if (Array.isArray(value)) {
+                if (value.length === 0) return '(empty array)';
+                // If array of objects, extract meaningful strings
+                const formatted = value.map(item => {
+                    if (typeof item === 'object' && item !== null) {
+                        // Try common field names for educational/experience entries
+                        const parts = [];
+                        if (item.degree || item.Degree) parts.push(item.degree || item.Degree);
+                        if (item.institution || item.Institution || item.school || item.School)
+                            parts.push(item.institution || item.Institution || item.school || item.School);
+                        if (item.year || item.Year || item.date || item.Date)
+                            parts.push(item.year || item.Year || item.date || item.Date);
+                        if (item.title || item.Title || item.name || item.Name)
+                            parts.push(item.title || item.Title || item.name || item.Name);
+                        if (item.value || item.Value) parts.push(item.value || item.Value);
+
+                        if (parts.length > 0) return parts.join(' - ');
+                        // Fallback: stringify first few keys
+                        const keys = Object.keys(item).slice(0, 3);
+                        return keys.map(k => `${k}: ${item[k]}`).join(', ');
+                    }
+                    return String(item);
+                });
+                return formatted.join('; ');
+            }
+
+            // Handle objects
+            if (typeof value === 'object') {
+                // Try to extract meaningful info
+                const parts = [];
+                for (const key of Object.keys(value).slice(0, 5)) {
+                    const v = value[key];
+                    if (typeof v === 'string' || typeof v === 'number') {
+                        parts.push(`${key}: ${v}`);
+                    } else if (Array.isArray(v)) {
+                        parts.push(`${key}: [${v.length} items]`);
+                    }
+                }
+                if (parts.length > 0) return parts.join(', ');
+                // Ultimate fallback
+                try {
+                    return JSON.stringify(value).substring(0, 200);
+                } catch (e) {
+                    return '(complex object)';
+                }
+            }
+
+            return String(value);
         }
 
-        function renderFields(fields) {
-            const container = document.getElementById('fieldsList');
-            const fieldNames = Object.keys(fields);
-
-            document.getElementById('fieldsCount').textContent = `${fieldNames.length} fields`;
-
-            if (!fieldNames.length) {
-                container.innerHTML = `
+        function renderFields() {
+            if (!extractedFields || Object.keys(extractedFields).length === 0) {
+                fieldsCard.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-icon">📋</div>
                         <div>No fields extracted</div>
                     </div>`;
                 return;
             }
 
-            container.innerHTML = fieldNames.map(name => {
-                const field = fields[name];
-                const confidence = field.confidence || 0;
-                const confClass = confidence >= 0.8 ? 'high' : confidence >= 0.5 ? 'medium' : 'low';
-                const value = typeof field.value === 'object' ? JSON.stringify(field.value, null, 2) : (field.value || '');
-
-                return `
-                    <div class="field-item" data-field="${name}">
-                        <div class="field-header">
-                            <span class="field-name">${name}</span>
-                            <div class="field-meta">
-                                <span class="confidence-badge confidence-${confClass}">${Math.round(confidence * 100)}%</span>
-                                <button class="field-delete" onclick="deleteField('${name}')">×</button>
-                            </div>
-                        </div>
-                        <textarea class="field-value" onchange="updateFieldValue('${name}', this.value)">${escapeHtml(String(value))}</textarea>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function updateFieldValue(name, value) {
-            const doc = documents[currentIndex];
-            if (extractedFields[doc.name] && extractedFields[doc.name][name]) {
-                extractedFields[doc.name][name].value = value;
-            }
-        }
-
-        function deleteField(name) {
-            const doc = documents[currentIndex];
-            if (extractedFields[doc.name]) {
-                delete extractedFields[doc.name][name];
-                renderFields(extractedFields[doc.name]);
-                setStatus(`Deleted field: ${name}`);
-            }
-        }
-
-        async function saveFields() {
-            if (!documents.length) return;
-
-            const doc = documents[currentIndex];
-            const fields = extractedFields[doc.name] || {};
-
-            try {
-                const result = await api(`/review/document/${currentIndex}/fields`, {
-                    method: 'PUT',
-                    body: JSON.stringify({ fields })
-                });
-
-                if (result.success) {
-                    setStatus('Fields saved successfully');
+            let html = '';
+            for (const [name, field] of Object.entries(extractedFields)) {
+                // Get the raw value
+                let rawValue;
+                if (typeof field === 'object' && field !== null) {
+                    rawValue = field.value !== undefined ? field.value : field;
                 } else {
-                    setStatus('Save failed: ' + result.error);
+                    rawValue = field;
                 }
-            } catch (err) {
-                setStatus('Error: ' + err.message);
+
+                // Format for display
+                const displayValue = formatFieldValue(rawValue);
+                const confidence = typeof field === 'object' ? (field.confidence || 0.95) : 0.95;
+                const confPercent = Math.round(confidence * 100);
+                const confClass = confidence >= 0.95 ? 'conf-high' : confidence >= 0.80 ? 'conf-medium' : 'conf-low';
+
+                // Escape for onclick
+                const escapedValue = displayValue.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+
+                html += `
+                    <div class="field-row" data-field="${name}" onclick="findInDocument('${name}', '${escapedValue}')">
+                        <span class="field-name">${name}</span>
+                        <span class="field-value">${displayValue}</span>
+                        <span class="field-confidence ${confClass}">${confPercent}%</span>
+                        <div class="field-actions">
+                            <button class="action-btn" onclick="event.stopPropagation(); editField('${name}')" title="Edit">✏️</button>
+                            <button class="action-btn" onclick="event.stopPropagation(); deleteField('${name}')" title="Delete">🗑️</button>
+                        </div>
+                    </div>`;
             }
+            fieldsCard.innerHTML = html;
         }
 
-        // Modals
-        function openUploadModal() {
-            document.getElementById('uploadModal').classList.add('active');
+        // ============================================
+        // UPDATE STATISTICS
+        // ============================================
+        function updateStatistics() {
+            let total = 0, nullCount = 0, high = 0, medium = 0, low = 0;
+
+            for (const [name, field] of Object.entries(extractedFields)) {
+                total++;
+                const value = typeof field === 'object' ? field.value : field;
+                const confidence = typeof field === 'object' ? (field.confidence || 0.95) : 0.95;
+
+                if (!value || value === '' || value === 'null' || value === 'N/A') nullCount++;
+                if (confidence >= 0.95) high++;
+                else if (confidence >= 0.80) medium++;
+                else low++;
+            }
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statNull').textContent = nullCount;
+            document.getElementById('statHigh').textContent = high;
+            document.getElementById('statMedium').textContent = medium;
+            document.getElementById('statLow').textContent = low;
         }
 
-        function openAddFieldModal() {
-            document.getElementById('newFieldName').value = '';
-            document.getElementById('newFieldValue').value = '';
-            document.getElementById('addFieldModal').classList.add('active');
-        }
+        // ============================================
+        // FIND IN DOCUMENT - Click Field to Search
+        // ============================================
+        function findInDocument(fieldName, fieldValue) {
+            // Set active state
+            document.querySelectorAll('.field-row').forEach(el => el.classList.remove('active'));
+            document.querySelector(`[data-field="${fieldName}"]`)?.classList.add('active');
 
-        function openApprovalModal(action) {
-            if (!documents.length) {
-                setStatus('No document to ' + action);
+            if (!fieldValue || fieldValue === '(empty)') {
+                setStatus(`Field "${fieldName}" has no value to search`);
                 return;
             }
 
-            const modal = document.getElementById('approvalModal');
-            const title = document.getElementById('approvalTitle');
-            const approveBtn = document.getElementById('confirmApproveBtn');
-            const rejectBtn = document.getElementById('confirmRejectBtn');
-            const rejectGroup = document.getElementById('rejectReasonGroup');
+            // Get search text - use first significant word or first 20 chars
+            let searchText = fieldValue.toString().trim();
+            if (searchText.startsWith('[') || searchText.startsWith('{')) {
+                // For JSON, extract first string value
+                const match = searchText.match(/"([^"]+)"/);
+                if (match) searchText = match[1];
+            }
+            searchText = searchText.split(/[\s,;]+/)[0].substring(0, 30).toLowerCase();
 
-            if (action === 'approve') {
-                title.textContent = 'Approve Document';
-                approveBtn.style.display = 'block';
-                rejectBtn.style.display = 'none';
-                rejectGroup.style.display = 'none';
-            } else {
-                title.textContent = 'Reject Document';
-                approveBtn.style.display = 'none';
-                rejectBtn.style.display = 'block';
-                rejectGroup.style.display = 'block';
+            if (searchText.length < 2) {
+                setStatus(`Field "${fieldName}" value too short to search`);
+                return;
             }
 
-            modal.classList.add('active');
+            // Remove existing highlights
+            document.querySelectorAll('.search-highlight').forEach(el => el.remove());
+
+            // Search in text layers
+            const textSpans = document.querySelectorAll('.text-layer span');
+            let found = false;
+
+            for (const span of textSpans) {
+                if (span.dataset.text && span.dataset.text.includes(searchText)) {
+                    // Create highlight using stored PDF coordinates
+                    const highlight = document.createElement('div');
+                    highlight.className = 'search-highlight';
+
+                    const pageWrapper = span.closest('.page-wrapper');
+                    const textLayer = span.closest('.text-layer');
+
+                    if (pageWrapper && textLayer) {
+                        // Use stored coordinates from PDF for accurate positioning
+                        const x = parseFloat(span.dataset.x) || parseFloat(span.style.left);
+                        const y = parseFloat(span.dataset.y) || parseFloat(span.style.top);
+                        const h = parseFloat(span.dataset.h) || parseFloat(span.style.fontSize) || 14;
+                        const w = parseFloat(span.dataset.w) || span.textContent.length * 8;
+
+                        // Position the highlight directly using PDF coordinates
+                        highlight.style.left = (x - 2) + 'px';
+                        highlight.style.top = (y - 2) + 'px';
+                        highlight.style.width = Math.max(w + 4, 50) + 'px';
+                        highlight.style.height = (h + 4) + 'px';
+
+                        // Append to text layer (which is positioned over the canvas)
+                        textLayer.appendChild(highlight);
+
+                        // Scroll into view - scroll the viewport to show this page
+                        pageWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                        // Also scroll the highlight into the visible area
+                        setTimeout(() => {
+                            highlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }, 300);
+
+                        // Remove highlight after 6 seconds
+                        setTimeout(() => highlight.remove(), 6000);
+
+                        found = true;
+                        setStatus(`Found "${searchText}" in document`);
+                        break;
+                    }
+                }
+            }
+            if (!found) {
+                // Try browser find as fallback (Ctrl+F)
+                setStatus(`Searching for "${searchText}"...`);
+                if (window.find) {
+                    window.find(searchText.substring(0, 20), false, false, true);
+                }
+            }
         }
 
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
+        // ============================================
+        // FIELD CRUD OPERATIONS
+        // ============================================
+        function editField(fieldName) {
+            const currentValue = extractedFields[fieldName]?.value || extractedFields[fieldName] || '';
+            const newValue = prompt(`Edit "${fieldName}":`, currentValue);
+            if (newValue !== null) {
+                if (typeof extractedFields[fieldName] === 'object') {
+                    extractedFields[fieldName].value = newValue;
+                } else {
+                    extractedFields[fieldName] = { value: newValue, confidence: 0.95 };
+                }
+                renderFields();
+                updateStatistics();
+                setStatus(`Updated "${fieldName}"`);
+            }
+        }
+
+        function deleteField(fieldName) {
+            if (confirm(`Delete field "${fieldName}"?`)) {
+                delete extractedFields[fieldName];
+                renderFields();
+                updateStatistics();
+                setStatus(`Deleted "${fieldName}"`);
+            }
         }
 
         function addNewField() {
-            const name = document.getElementById('newFieldName').value.trim();
-            const value = document.getElementById('newFieldValue').value;
+            const name = prompt('Enter field name:');
+            if (!name) return;
+            const value = prompt('Enter field value:');
+            extractedFields[name] = { value: value || '', confidence: 1.0 };
+            renderFields();
+            updateStatistics();
+            setStatus(`Added "${name}"`);
+        }
 
-            if (!name) {
-                setStatus('Please enter a field name');
+        // ============================================
+        // APPROVE / REJECT
+        // ============================================
+        document.getElementById('approveBtn').addEventListener('click', () => {
+            if (!currentFile) return;
+            setStatus('✅ Document Approved - saving...');
+            // TODO: API call to save to approved folder
+        });
+
+        document.getElementById('rejectBtn').addEventListener('click', () => {
+            if (!currentFile) return;
+            setStatus('❌ Document Rejected');
+            // TODO: API call to save to rejected folder
+        });
+
+        // ============================================
+        // UTILITY
+        // ============================================
+        function setStatus(message) {
+            statusText.textContent = message;
+            console.log('[Status]', message);
+        }
+
+        // ============================================
+        // AZURE STORAGE INTEGRATION
+        // ============================================
+        let selectedAzureFile = null;
+        let azureContainers = [];
+
+        // Azure Storage Button Click Handler
+        document.getElementById('azureStorageBtn').addEventListener('click', openAzureModal);
+
+        async function openAzureModal() {
+            const modal = document.getElementById('azureModal');
+            const loading = document.getElementById('azureLoading');
+            const content = document.getElementById('azureContent');
+            const error = document.getElementById('azureError');
+
+            modal.classList.add('active');
+            loading.style.display = 'flex';
+            content.style.display = 'none';
+            error.style.display = 'none';
+            selectedAzureFile = null;
+            updateSelectedFileInfo();
+
+            try {
+                const response = await fetch('/api/azure/containers');
+                const data = await response.json();
+
+                if (data.success) {
+                    azureContainers = data.containers;
+                    populateContainerSelect(data.containers);
+                    loading.style.display = 'none';
+                    content.style.display = 'block';
+                } else {
+                    throw new Error(data.error || 'Failed to load containers');
+                }
+            } catch (err) {
+                loading.style.display = 'none';
+                error.style.display = 'block';
+                error.innerHTML = `
+                    <div>⚠️ ${err.message}</div>
+                    <div style="font-size: 11px; margin-top: 8px;">
+                        Make sure Azure Storage is configured in Settings
+                    </div>
+                `;
+            }
+        }
+
+        function closeAzureModal() {
+            document.getElementById('azureModal').classList.remove('active');
+        }
+
+        function populateContainerSelect(containers) {
+            const select = document.getElementById('containerSelect');
+            select.innerHTML = '<option value="">-- Select a container --</option>';
+            containers.forEach(c => {
+                const option = document.createElement('option');
+                option.value = c.name;
+                option.textContent = c.name;
+                select.appendChild(option);
+            });
+        }
+
+        async function loadContainerBlobs() {
+            const containerName = document.getElementById('containerSelect').value;
+            const blobList = document.getElementById('blobList');
+
+            if (!containerName) {
+                blobList.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">Select a container to view files</div>';
                 return;
             }
 
-            const doc = documents[currentIndex];
-            if (!extractedFields[doc.name]) {
-                extractedFields[doc.name] = {};
-            }
-
-            extractedFields[doc.name][name] = {
-                value: value,
-                type: 'string',
-                confidence: 1.0,
-                source: 'Manual Entry'
-            };
-
-            renderFields(extractedFields[doc.name]);
-            closeModal('addFieldModal');
-            setStatus(`Added field: ${name}`);
-        }
-
-        async function confirmApproval(action) {
-            const doc = documents[currentIndex];
-            const reviewer = document.getElementById('reviewerName').value || 'Anonymous';
-            const notes = document.getElementById('reviewNotes').value;
-            const reason = document.getElementById('rejectReason').value;
-            const fields = extractedFields[doc.name] || {};
-
-            setStatus(`Processing ${action}...`);
+            blobList.innerHTML = '<div class="azure-loading"><div class="azure-loading-spinner"></div><span>Loading files...</span></div>';
 
             try {
-                const result = await api(`/review/document/${currentIndex}/${action}`, {
-                    method: 'POST',
-                    body: JSON.stringify({ fields, reviewer, notes, reason })
-                });
+                const response = await fetch(`/api/azure/blobs/${encodeURIComponent(containerName)}`);
+                const data = await response.json();
 
-                if (result.success) {
-                    setStatus(`Document ${action}ed: ${result.filename}`);
-                    closeModal('approvalModal');
-
-                    // Move to next document or show completion
-                    if (currentIndex < documents.length - 1) {
-                        navigateDoc(1);
-                    } else {
-                        setStatus('All documents reviewed!');
+                if (data.success) {
+                    if (data.blobs.length === 0) {
+                        blobList.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">No files in this container</div>';
+                        return;
                     }
+
+                    // Filter to supported file types
+                    const supportedTypes = ['pdf', 'docx', 'xlsx', 'eml', 'csv', 'png', 'jpg', 'jpeg'];
+                    const filteredBlobs = data.blobs.filter(blob => {
+                        const ext = blob.name.split('.').pop().toLowerCase();
+                        return supportedTypes.includes(ext);
+                    });
+
+                    if (filteredBlobs.length === 0) {
+                        blobList.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">No supported files found (PDF, DOCX, XLSX, EML, CSV, Images)</div>';
+                        return;
+                    }
+
+                    blobList.innerHTML = filteredBlobs.map(blob => `
+                        <div class="azure-file-item" onclick="selectAzureFile('${containerName}', '${blob.name}', ${blob.size})" data-blob="${blob.name}">
+                            <span class="azure-file-icon">${getFileIcon(blob.name)}</span>
+                            <span class="azure-file-name">${blob.name}</span>
+                            <span class="azure-file-size">${formatFileSize(blob.size)}</span>
+                        </div>
+                    `).join('');
                 } else {
-                    setStatus(`${action} failed: ` + result.error);
+                    throw new Error(data.error || 'Failed to load files');
                 }
             } catch (err) {
-                setStatus('Error: ' + err.message);
+                blobList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--tron-orange);">Error: ${err.message}</div>`;
             }
         }
 
-        function addMoreDocuments() {
-            openUploadModal();
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const icons = {
+                'pdf': '📕',
+                'docx': '📘',
+                'doc': '📘',
+                'xlsx': '📗',
+                'xls': '📗',
+                'csv': '📊',
+                'eml': '📧',
+                'png': '🖼️',
+                'jpg': '🖼️',
+                'jpeg': '🖼️'
+            };
+            return icons[ext] || '📄';
         }
 
-        // Utilities
-        function setStatus(text) {
-            document.getElementById('statusText').textContent = text;
-        }
-
-        function formatSize(bytes) {
+        function formatFileSize(bytes) {
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        function selectAzureFile(container, blobName, size) {
+            // Remove previous selection
+            document.querySelectorAll('.azure-file-item').forEach(el => el.classList.remove('selected'));
+
+            // Add selection to clicked item
+            const item = document.querySelector(`.azure-file-item[data-blob="${blobName}"]`);
+            if (item) item.classList.add('selected');
+
+            selectedAzureFile = { container, blobName, size };
+            updateSelectedFileInfo();
         }
+
+        function updateSelectedFileInfo() {
+            const info = document.getElementById('selectedFileInfo');
+            const btn = document.getElementById('loadAzureFileBtn');
+
+            if (selectedAzureFile) {
+                info.textContent = `Selected: ${selectedAzureFile.blobName}`;
+                info.style.color = 'var(--tron-cyan)';
+                btn.disabled = false;
+            } else {
+                info.textContent = 'No file selected';
+                info.style.color = 'var(--text-secondary)';
+                btn.disabled = true;
+            }
+        }
+
+        async function loadSelectedAzureFile() {
+            if (!selectedAzureFile) return;
+
+            const { container, blobName } = selectedAzureFile;
+            setStatus(`Loading ${blobName} from Azure...`);
+            closeAzureModal();
+
+            try {
+                const response = await fetch(`/api/azure/download/${encodeURIComponent(container)}/${encodeURIComponent(blobName)}`);
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Download failed');
+                }
+
+                const blob = await response.blob();
+                const file = new File([blob], blobName, { type: blob.type });
+
+                currentFile = file;
+                docInfo.textContent = blobName + ' (Azure)';
+
+                // Upload to review system
+                const formData = new FormData();
+                formData.append('files', file);
+
+                const uploadResponse = await fetch('/api/review/add', {
+                    method: 'POST',
+                    body: formData
+                });
+                const uploadData = await uploadResponse.json();
+
+                if (uploadData.success) {
+                    currentDocIndex = (uploadData.total || 1) - 1;
+                    setStatus(`Loaded: ${blobName} from Azure (index ${currentDocIndex})`);
+                }
+
+                // Preview the file
+                await loadDocumentPreview(file);
+
+            } catch (err) {
+                setStatus(`Error: ${err.message}`);
+                console.error('Azure download error:', err);
+            }
+        }
+
+        // Close modal on overlay click
+        document.getElementById('azureModal').addEventListener('click', (e) => {
+            if (e.target.id === 'azureModal') {
+                closeAzureModal();
+            }
+        });
+
+        // Start animation on load
+        runStartupSequence();
     </script>
 </body>
 

@@ -396,6 +396,775 @@ def favicon():
         from flask import Response
         return Response(status=204)
 
+# ============================================================================
+# SETTINGS MANAGEMENT ENDPOINTS
+# ============================================================================
+@app.route('/settings')
+def settings_page():
+    """Serve the settings HTML page"""
+    return send_from_directory('.', 'settings.html')
+
+@app.route('/api/settings', methods=['GET'])
+def get_settings():
+    """Get current settings from .env file"""
+    try:
+        env_path = os.path.join(BASE_DIR, '.env')
+        settings = {}
+        
+        if os.path.exists(env_path):
+            with open(env_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, _, value = line.partition('=')
+                        key = key.strip()
+                        value = value.strip()
+                        # Remove quotes if present
+                        if (value.startswith('"') and value.endswith('"')) or \
+                           (value.startswith("'") and value.endswith("'")):
+                            value = value[1:-1]
+                        settings[key] = value
+        
+        return jsonify(settings)
+    except Exception as e:
+        logger.error(f"Failed to read settings: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/settings', methods=['POST'])
+def update_settings():
+    """Update settings in .env file"""
+    try:
+        new_settings = request.get_json()
+        if not new_settings:
+            return jsonify({'error': 'No settings provided'}), 400
+        
+        env_path = os.path.join(BASE_DIR, '.env')
+        
+        # Read existing .env file
+        existing_lines = []
+        existing_keys = set()
+        if os.path.exists(env_path):
+            with open(env_path, 'r', encoding='utf-8') as f:
+                existing_lines = f.readlines()
+        
+        # Parse existing keys
+        for i, line in enumerate(existing_lines):
+            stripped = line.strip()
+            if stripped and not stripped.startswith('#') and '=' in stripped:
+                key = stripped.split('=')[0].strip()
+                existing_keys.add(key)
+        
+        # Update existing lines with new values
+        updated_lines = []
+        for line in existing_lines:
+            stripped = line.strip()
+            if stripped and not stripped.startswith('#') and '=' in stripped:
+                key = stripped.split('=')[0].strip()
+                if key in new_settings:
+                    value = new_settings[key]
+                    # Escape special characters in value
+                    if isinstance(value, str) and any(c in value for c in [' ', '"', "'"]):
+                        updated_lines.append(f'{key}="{value}"\n')
+                    else:
+                        updated_lines.append(f'{key}={value}\n')
+                else:
+                    updated_lines.append(line)
+            else:
+                updated_lines.append(line)
+        
+        # Add new keys that don't exist
+        for key, value in new_settings.items():
+            if key not in existing_keys and not key.startswith('_'):
+                if isinstance(value, str) and any(c in value for c in [' ', '"', "'"]):
+                    updated_lines.append(f'{key}="{value}"\n')
+                else:
+                    updated_lines.append(f'{key}={value}\n')
+        
+        # Write updated .env file
+        with open(env_path, 'w', encoding='utf-8') as f:
+            f.writelines(updated_lines)
+        
+        logger.info(f"Settings updated: {list(new_settings.keys())}")
+        return jsonify({'success': True, 'message': 'Settings saved successfully'})
+    
+    except Exception as e:
+        logger.error(f"Failed to update settings: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/settings/verify/doc-intelligence', methods=['POST'])
+def verify_doc_intelligence():
+    """Verify Document Intelligence endpoint and key"""
+    import requests as http_requests
+    try:
+        data = request.get_json()
+        endpoint = data.get('endpoint', '').strip()
+        key = data.get('key', '').strip()
+        
+        if not endpoint or not key:
+            return jsonify({'valid': False, 'error': 'Endpoint and key are required'})
+        
+        # Remove trailing slash from endpoint
+        endpoint = endpoint.rstrip('/')
+        
+        # List of API versions to try (newest first)
+        api_versions = [
+            ('documentintelligence', '2024-02-29-preview'),
+            ('documentintelligence', '2023-10-31-preview'),
+            ('formrecognizer', '2023-07-31'),
+            ('formrecognizer', '2022-08-31'),
+        ]
+        
+        headers = {
+            'Ocp-Apim-Subscription-Key': key,
+            'Content-Type': 'application/json'
+        }
+        
+        last_error = None
+        for service_path, api_version in api_versions:
+            try:
+                test_url = f"{endpoint}/{service_path}/documentModels?api-version={api_version}"
+                response = http_requests.get(test_url, headers=headers, timeout=15)
+                
+                if response.status_code == 200:
+                    return jsonify({'valid': True, 'message': f'Connection successful (API: {api_version})'})
+                elif response.status_code == 401:
+                    return jsonify({'valid': False, 'error': 'Invalid API key'})
+                elif response.status_code == 403:
+                    return jsonify({'valid': False, 'error': 'Access forbidden - check API key permissions'})
+                else:
+                    last_error = f'API returned status {response.status_code}'
+            except http_requests.exceptions.Timeout:
+                last_error = 'Connection timeout'
+            except http_requests.exceptions.ConnectionError:
+                last_error = 'Could not connect to endpoint'
+            except Exception as e:
+                last_error = str(e)
+        
+        return jsonify({'valid': False, 'error': last_error or 'Could not verify endpoint'})
+    
+    except Exception as e:
+        logger.error(f"Doc Intelligence verification failed: {e}")
+        return jsonify({'valid': False, 'error': str(e)})
+
+@app.route('/api/settings/verify/azure-openai', methods=['POST'])
+def verify_azure_openai():
+    """Verify Azure OpenAI endpoint and key"""
+    import requests as http_requests
+    import re
+    try:
+        data = request.get_json()
+        endpoint = data.get('endpoint', '').strip()
+        key = data.get('key', '').strip()
+        api_version = data.get('apiVersion', '2024-08-01-preview').strip()
+        deployment = data.get('deployment', '').strip()
+        
+        if not endpoint or not key:
+            return jsonify({'valid': False, 'error': 'Endpoint and key are required'})
+        
+        # Extract base endpoint if full URL with deployment is provided
+        # Handles: https://xxx.openai.azure.com/openai/deployments/model1/chat/completions?api-version=xxx
+        base_url_match = re.match(r'(https://[^/]+\.openai\.azure\.com)', endpoint)
+        if base_url_match:
+            base_endpoint = base_url_match.group(1)
+        else:
+            base_endpoint = endpoint.rstrip('/')
+        
+        # Try to extract deployment from URL if not provided
+        if not deployment:
+            deploy_match = re.search(r'/deployments/([^/]+)', endpoint)
+            if deploy_match:
+                deployment = deploy_match.group(1)
+        
+        headers = {
+            'api-key': key,
+            'Content-Type': 'application/json'
+        }
+        
+        # Try to list deployments first
+        test_url = f"{base_endpoint}/openai/deployments?api-version={api_version}"
+        try:
+            response = http_requests.get(test_url, headers=headers, timeout=15)
+            
+            if response.status_code == 200:
+                return jsonify({'valid': True, 'message': 'Connection successful'})
+            elif response.status_code == 401:
+                return jsonify({'valid': False, 'error': 'Invalid API key'})
+        except:
+            pass
+        
+        # Try with specific deployment
+        if deployment:
+            test_url = f"{base_endpoint}/openai/deployments/{deployment}?api-version={api_version}"
+            try:
+                response = http_requests.get(test_url, headers=headers, timeout=15)
+                if response.status_code == 200:
+                    return jsonify({'valid': True, 'message': f'Connection successful (deployment: {deployment})'})
+                elif response.status_code == 401:
+                    return jsonify({'valid': False, 'error': 'Invalid API key'})
+            except:
+                pass
+        
+        # Try a simple chat completion test
+        if deployment:
+            test_url = f"{base_endpoint}/openai/deployments/{deployment}/chat/completions?api-version={api_version}"
+            try:
+                test_body = {
+                    "messages": [{"role": "user", "content": "test"}],
+                    "max_tokens": 1
+                }
+                response = http_requests.post(test_url, headers=headers, json=test_body, timeout=15)
+                if response.status_code in [200, 400]:  # 400 means endpoint works but request was malformed
+                    return jsonify({'valid': True, 'message': f'Connection successful (deployment: {deployment})'})
+                elif response.status_code == 401:
+                    return jsonify({'valid': False, 'error': 'Invalid API key'})
+            except:
+                pass
+        
+        return jsonify({'valid': False, 'error': 'Could not verify endpoint - check URL and deployment name'})
+    
+    except Exception as e:
+        logger.error(f"Azure OpenAI verification failed: {e}")
+        return jsonify({'valid': False, 'error': str(e)})
+
+@app.route('/api/settings/verify/azure-storage', methods=['POST'])
+def verify_azure_storage():
+    """Verify Azure Storage connection string"""
+    try:
+        data = request.get_json()
+        connection_string = data.get('connectionString', '').strip()
+        
+        if not connection_string:
+            return jsonify({'valid': False, 'error': 'Connection string is required'})
+        
+        try:
+            from azure.storage.blob import BlobServiceClient
+            
+            blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+            
+            # Get account info to verify connection (doesn't require listing containers)
+            try:
+                account_info = blob_service_client.get_account_information()
+                return jsonify({
+                    'valid': True,
+                    'message': 'Connection successful',
+                    'sku': account_info.get('sku_name', 'Unknown')
+                })
+            except Exception:
+                # Fallback: try to list containers without max_results parameter
+                container_count = 0
+                for container in blob_service_client.list_containers():
+                    container_count += 1
+                    if container_count >= 5:  # Only count up to 5
+                        break
+                
+                return jsonify({
+                    'valid': True,
+                    'message': 'Connection successful',
+                    'containers': container_count
+                })
+        
+        except ImportError:
+            return jsonify({
+                'valid': False,
+                'error': 'Azure Storage SDK not installed. Run: pip install azure-storage-blob'
+            })
+        except Exception as e:
+            error_msg = str(e)
+            if 'AuthenticationFailed' in error_msg:
+                return jsonify({'valid': False, 'error': 'Authentication failed - check connection string'})
+            elif 'getaddrinfo failed' in error_msg:
+                return jsonify({'valid': False, 'error': 'Could not resolve storage account name'})
+            elif 'InvalidResourceName' in error_msg:
+                return jsonify({'valid': False, 'error': 'Invalid storage account name in connection string'})
+            else:
+                return jsonify({'valid': False, 'error': f'Connection failed: {error_msg}'})
+    
+    except Exception as e:
+        logger.error(f"Azure Storage verification failed: {e}")
+        return jsonify({'valid': False, 'error': str(e)})
+
+@app.route('/api/settings/verify/path', methods=['POST'])
+def verify_path():
+    """Verify paths exist or create them if requested"""
+    try:
+        data = request.get_json()
+        paths = data.get('paths', [])
+        create_if_missing = data.get('createIfMissing', False)
+        
+        if not paths:
+            return jsonify({'valid': False, 'error': 'No paths provided'})
+        
+        created = False
+        for path_info in paths:
+            path_value = path_info.get('value', '').strip()
+            
+            if not path_value:
+                continue
+            
+            # Expand environment variables and user paths
+            expanded_path = os.path.expandvars(os.path.expanduser(path_value))
+            
+            if not os.path.exists(expanded_path):
+                if create_if_missing:
+                    try:
+                        os.makedirs(expanded_path, exist_ok=True)
+                        created = True
+                        logger.info(f"Created directory: {expanded_path}")
+                    except Exception as e:
+                        return jsonify({
+                            'valid': False,
+                            'error': f"Failed to create {path_value}: {str(e)}"
+                        })
+                else:
+                    return jsonify({
+                        'valid': False,
+                        'error': f"Path does not exist: {path_value}"
+                    })
+            elif not os.path.isdir(expanded_path):
+                return jsonify({
+                    'valid': False,
+                    'error': f"Path is not a directory: {path_value}"
+                })
+        
+        return jsonify({
+            'valid': True,
+            'message': 'All paths verified',
+            'created': created
+        })
+    
+    except Exception as e:
+        logger.error(f"Path verification failed: {e}")
+        return jsonify({'valid': False, 'error': str(e)})
+
+# ============================================================================
+# AZURE STORAGE API ENDPOINTS
+# ============================================================================
+@app.route('/api/azure/containers', methods=['GET'])
+def list_azure_containers():
+    """List all containers in Azure Blob Storage"""
+    try:
+        from azure.storage.blob import BlobServiceClient
+        
+        # Get connection string from environment
+        connection_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING', '')
+        
+        if not connection_string:
+            return jsonify({
+                'success': False,
+                'error': 'Azure Storage not configured. Please set up in Settings.'
+            })
+        
+        blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+        
+        containers = []
+        for container in blob_service_client.list_containers():
+            containers.append({
+                'name': container['name'],
+                'last_modified': container.get('last_modified', '').isoformat() if container.get('last_modified') else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'containers': containers
+        })
+        
+    except ImportError:
+        return jsonify({
+            'success': False,
+            'error': 'Azure Storage SDK not installed. Run: pip install azure-storage-blob'
+        })
+    except Exception as e:
+        logger.error(f"Failed to list containers: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/api/azure/blobs/<container_name>', methods=['GET'])
+def list_azure_blobs(container_name):
+    """List all blobs in a container"""
+    try:
+        from azure.storage.blob import BlobServiceClient
+        
+        connection_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING', '')
+        
+        if not connection_string:
+            return jsonify({
+                'success': False,
+                'error': 'Azure Storage not configured'
+            })
+        
+        blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+        container_client = blob_service_client.get_container_client(container_name)
+        
+        blobs = []
+        for blob in container_client.list_blobs():
+            blobs.append({
+                'name': blob.name,
+                'size': blob.size,
+                'last_modified': blob.last_modified.isoformat() if blob.last_modified else None,
+                'content_type': blob.content_settings.content_type if blob.content_settings else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'container': container_name,
+            'blobs': blobs
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to list blobs in {container_name}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/api/azure/download/<container_name>/<path:blob_name>', methods=['GET'])
+def download_azure_blob(container_name, blob_name):
+    """Download a blob from Azure Storage"""
+    try:
+        from azure.storage.blob import BlobServiceClient
+        from flask import Response
+        import io
+        
+        connection_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING', '')
+        
+        if not connection_string:
+            return jsonify({
+                'success': False,
+                'error': 'Azure Storage not configured'
+            }), 400
+        
+        blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+        blob_client = blob_service_client.get_blob_client(container_name, blob_name)
+        
+        # Download blob content
+        blob_data = blob_client.download_blob()
+        content = blob_data.readall()
+        
+        # Determine content type
+        content_type_map = {
+            '.pdf': 'application/pdf',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            '.csv': 'text/csv',
+            '.eml': 'message/rfc822',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg'
+        }
+        
+        ext = os.path.splitext(blob_name)[1].lower()
+        content_type = content_type_map.get(ext, 'application/octet-stream')
+        
+        return Response(
+            content,
+            mimetype=content_type,
+            headers={
+                'Content-Disposition': f'attachment; filename="{os.path.basename(blob_name)}"'
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to download blob {blob_name}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# ============================================================================
+# FILE PREVIEW API ENDPOINTS
+# ============================================================================
+
+# Store parsed EML data temporarily for attachment access
+_parsed_eml_cache = {}
+
+@app.route('/api/preview/parse', methods=['POST'])
+def parse_file_for_preview():
+    """Parse uploaded file and return preview-ready content"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No file provided'})
+        
+        file = request.files['file']
+        filename = file.filename
+        ext = os.path.splitext(filename)[1].lower()
+        
+        if ext == '.eml':
+            return parse_eml_file(file, filename)
+        elif ext == '.docx':
+            return parse_docx_file(file, filename)
+        elif ext in ['.xlsx', '.xls']:
+            return parse_excel_file(file, filename)
+        elif ext == '.csv':
+            return parse_csv_file(file, filename)
+        else:
+            return jsonify({
+                'success': True,
+                'type': 'unsupported',
+                'filename': filename,
+                'message': f'{ext.upper()} files use native preview'
+            })
+    
+    except Exception as e:
+        logger.error(f"File preview parsing failed: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+def parse_eml_file(file, filename):
+    """Parse EML file and extract email content + attachments"""
+    import email
+    from email import policy
+    from email.utils import parsedate_to_datetime
+    import base64
+    import uuid
+    
+    try:
+        content = file.read()
+        msg = email.message_from_bytes(content, policy=policy.default)
+        
+        # Extract headers
+        headers = {
+            'from': str(msg.get('From', '')),
+            'to': str(msg.get('To', '')),
+            'cc': str(msg.get('Cc', '')),
+            'subject': str(msg.get('Subject', '')),
+            'date': str(msg.get('Date', ''))
+        }
+        
+        # Extract body
+        body_html = None
+        body_text = None
+        attachments = []
+        
+        if msg.is_multipart():
+            for part in msg.walk():
+                content_type = part.get_content_type()
+                content_disposition = str(part.get('Content-Disposition', ''))
+                
+                # Check if it's an attachment
+                if 'attachment' in content_disposition or part.get_filename():
+                    att_filename = part.get_filename() or f'attachment_{len(attachments)}'
+                    att_data = part.get_payload(decode=True)
+                    if att_data:
+                        attachments.append({
+                            'index': len(attachments),
+                            'filename': att_filename,
+                            'content_type': content_type,
+                            'size': len(att_data),
+                            'data': base64.b64encode(att_data).decode('utf-8')
+                        })
+                elif content_type == 'text/html' and not body_html:
+                    payload = part.get_payload(decode=True)
+                    if payload:
+                        body_html = payload.decode('utf-8', errors='replace')
+                elif content_type == 'text/plain' and not body_text:
+                    payload = part.get_payload(decode=True)
+                    if payload:
+                        body_text = payload.decode('utf-8', errors='replace')
+        else:
+            # Simple message
+            content_type = msg.get_content_type()
+            payload = msg.get_payload(decode=True)
+            if payload:
+                if content_type == 'text/html':
+                    body_html = payload.decode('utf-8', errors='replace')
+                else:
+                    body_text = payload.decode('utf-8', errors='replace')
+        
+        # Generate cache key for attachment access
+        cache_key = str(uuid.uuid4())
+        _parsed_eml_cache[cache_key] = {
+            'attachments': attachments,
+            'timestamp': time.time()
+        }
+        
+        # Clean old cache entries (older than 30 minutes)
+        current_time = time.time()
+        keys_to_delete = [k for k, v in _parsed_eml_cache.items() 
+                         if current_time - v['timestamp'] > 1800]
+        for k in keys_to_delete:
+            del _parsed_eml_cache[k]
+        
+        return jsonify({
+            'success': True,
+            'type': 'eml',
+            'filename': filename,
+            'cacheKey': cache_key,
+            'headers': headers,
+            'bodyHtml': body_html,
+            'bodyText': body_text,
+            'attachments': [{
+                'index': a['index'],
+                'filename': a['filename'],
+                'contentType': a['content_type'],
+                'size': a['size']
+            } for a in attachments]
+        })
+        
+    except Exception as e:
+        logger.error(f"EML parsing failed: {e}")
+        return jsonify({'success': False, 'error': f'EML parsing failed: {str(e)}'})
+
+def parse_docx_file(file, filename):
+    """Parse DOCX file and convert to HTML"""
+    try:
+        from docx import Document
+        from docx.shared import Inches
+        import io
+        
+        content = file.read()
+        doc = Document(io.BytesIO(content))
+        
+        html_parts = ['<div class="docx-content">']
+        
+        for para in doc.paragraphs:
+            style = para.style.name if para.style else 'Normal'
+            text = para.text.strip()
+            
+            if not text:
+                html_parts.append('<p>&nbsp;</p>')
+                continue
+            
+            # Map styles to HTML
+            if 'Heading 1' in style:
+                html_parts.append(f'<h1>{text}</h1>')
+            elif 'Heading 2' in style:
+                html_parts.append(f'<h2>{text}</h2>')
+            elif 'Heading 3' in style:
+                html_parts.append(f'<h3>{text}</h3>')
+            elif 'Title' in style:
+                html_parts.append(f'<h1 class="title">{text}</h1>')
+            else:
+                html_parts.append(f'<p>{text}</p>')
+        
+        # Handle tables
+        for table in doc.tables:
+            html_parts.append('<table class="docx-table">')
+            for row in table.rows:
+                html_parts.append('<tr>')
+                for cell in row.cells:
+                    html_parts.append(f'<td>{cell.text}</td>')
+                html_parts.append('</tr>')
+            html_parts.append('</table>')
+        
+        html_parts.append('</div>')
+        
+        return jsonify({
+            'success': True,
+            'type': 'docx',
+            'filename': filename,
+            'html': '\n'.join(html_parts)
+        })
+        
+    except ImportError:
+        return jsonify({
+            'success': False,
+            'error': 'python-docx not installed. Run: pip install python-docx'
+        })
+    except Exception as e:
+        logger.error(f"DOCX parsing failed: {e}")
+        return jsonify({'success': False, 'error': f'DOCX parsing failed: {str(e)}'})
+
+def parse_excel_file(file, filename):
+    """Parse Excel file and convert to HTML table"""
+    try:
+        import pandas as pd
+        import io
+        
+        content = file.read()
+        
+        # Read Excel file
+        df = pd.read_excel(io.BytesIO(content), sheet_name=None)
+        
+        html_parts = ['<div class="excel-content">']
+        
+        for sheet_name, sheet_df in df.items():
+            html_parts.append(f'<h3 class="sheet-name">📊 {sheet_name}</h3>')
+            # Convert to HTML with styling
+            table_html = sheet_df.to_html(
+                classes='excel-table',
+                index=False,
+                na_rep='',
+                max_rows=100
+            )
+            html_parts.append(table_html)
+        
+        html_parts.append('</div>')
+        
+        return jsonify({
+            'success': True,
+            'type': 'xlsx',
+            'filename': filename,
+            'html': '\n'.join(html_parts)
+        })
+        
+    except ImportError:
+        return jsonify({
+            'success': False,
+            'error': 'pandas/openpyxl not installed'
+        })
+    except Exception as e:
+        logger.error(f"Excel parsing failed: {e}")
+        return jsonify({'success': False, 'error': f'Excel parsing failed: {str(e)}'})
+
+def parse_csv_file(file, filename):
+    """Parse CSV file and convert to HTML table"""
+    try:
+        import pandas as pd
+        import io
+        
+        content = file.read().decode('utf-8', errors='replace')
+        df = pd.read_csv(io.StringIO(content))
+        
+        table_html = df.to_html(
+            classes='csv-table',
+            index=False,
+            na_rep='',
+            max_rows=100
+        )
+        
+        return jsonify({
+            'success': True,
+            'type': 'csv',
+            'filename': filename,
+            'html': f'<div class="csv-content">{table_html}</div>'
+        })
+        
+    except Exception as e:
+        logger.error(f"CSV parsing failed: {e}")
+        return jsonify({'success': False, 'error': f'CSV parsing failed: {str(e)}'})
+
+@app.route('/api/preview/attachment/<cache_key>/<int:index>', methods=['GET'])
+def get_eml_attachment(cache_key, index):
+    """Get a specific attachment from a parsed EML file"""
+    try:
+        from flask import Response
+        import base64
+        
+        if cache_key not in _parsed_eml_cache:
+            return jsonify({'success': False, 'error': 'Cache expired, please reload email'}), 404
+        
+        cache_entry = _parsed_eml_cache[cache_key]
+        attachments = cache_entry['attachments']
+        
+        if index < 0 or index >= len(attachments):
+            return jsonify({'success': False, 'error': 'Attachment not found'}), 404
+        
+        attachment = attachments[index]
+        content = base64.b64decode(attachment['data'])
+        
+        return Response(
+            content,
+            mimetype=attachment['content_type'],
+            headers={
+                'Content-Disposition': f'inline; filename="{attachment["filename"]}"'
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to get attachment: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/pdf/split', methods=['POST'])
 def split_pdf_files():
     """

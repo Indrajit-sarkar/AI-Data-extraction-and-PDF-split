@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Universal Data Extractor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* TRON LEGACY THEME */
+            --tron-cyan: #00d4ff;
+            --tron-cyan-dim: rgba(0, 212, 255, 0.25);
+            --tron-cyan-glow: rgba(0, 212, 255, 0.5);
+            --tron-orange: #ff6600;
+            --tron-dark: #0a0a0f;
+            --tron-darker: #050508;
+
+            /* Liquid Glass with Tron glow */
+            --clear-glass: rgba(0, 20, 30, 0.6);
+            --clear-glass-hover: rgba(0, 40, 60, 0.7);
+            --clear-glass-border: rgba(0, 212, 255, 0.4);
+            --blur-amount: 20px;
+
+            --accent-green: #34C759;
+            --accent-red: #FF3B30;
+            --accent-orange: #FF9500;
+
+            --text-primary: rgba(255, 255, 255, 0.95);
+            --text-secondary: rgba(0, 212, 255, 0.7);
+            --text-tertiary: rgba(255, 255, 255, 0.5);
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #000000;
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+
+        /* ============================================
+           TRON ANIMATED BACKGROUND
+           ============================================ */
+        .landscape-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background:
+                repeating-linear-gradient(0deg, transparent, transparent 80px, rgba(0, 212, 255, 0.03) 80px, rgba(0, 212, 255, 0.03) 81px),
+                repeating-linear-gradient(90deg, transparent, transparent 80px, rgba(0, 212, 255, 0.03) 80px, rgba(0, 212, 255, 0.03) 81px),
+                radial-gradient(ellipse at center bottom, rgba(0, 40, 60, 0.3) 0%, #000000 70%);
+        }
+
+        .aura-light {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            animation: auraFloat 12s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .aura-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.2) 0%, transparent 70%);
+            top: 10%;
+            left: 5%;
+        }
+
+        .aura-2 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(0, 180, 220, 0.2) 0%, transparent 70%);
+            bottom: 15%;
+            right: 8%;
+            animation-delay: -4s;
+        }
+
+        @keyframes auraFloat {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: translate(20px, -20px) scale(1.1);
+                opacity: 0.8;
+            }
+        }
+
+        /* ============================================
+           MAIN LAYOUT
+           ============================================ */
+        .app-container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            background: var(--clear-glass);
+            backdrop-filter: blur(var(--blur-amount));
+            border-bottom: 1px solid var(--clear-glass-border);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid var(--clear-glass-border);
+            color: var(--text-secondary);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: var(--tron-cyan-dim);
+            color: var(--tron-cyan);
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--tron-cyan);
+            text-shadow: 0 0 10px var(--tron-cyan-dim);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            gap: 0;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            flex-shrink: 0;
+            background: var(--clear-glass);
+            backdrop-filter: blur(var(--blur-amount));
+            border-right: 1px solid var(--clear-glass-border);
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-tertiary);
+            padding: 0 20px 12px;
+            margin-bottom: 8px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .menu-item:hover {
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .menu-item.active {
+            background: rgba(0, 212, 255, 0.15);
+            border-left-color: var(--tron-cyan);
+            color: var(--tron-cyan);
+        }
+
+        .menu-icon {
+            font-size: 18px;
+        }
+
+        /* Content Panel */
+        .content-panel {
+            flex: 1;
+            padding: 24px 32px;
+            overflow-y: auto;
+        }
+
+        .content-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content-panel::-webkit-scrollbar-thumb {
+            background: var(--tron-cyan-dim);
+            border-radius: 4px;
+        }
+
+        .panel-section {
+            display: none;
+        }
+
+        .panel-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--tron-cyan);
+            margin-bottom: 8px;
+        }
+
+        .section-desc {
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: 28px;
+        }
+
+        /* Glass Card */
+        .glass-card {
+            background: var(--clear-glass);
+            backdrop-filter: blur(var(--blur-amount));
+            border: 1px solid var(--clear-glass-border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .glass-card:hover {
+            background: var(--clear-glass-hover);
+            box-shadow: 0 8px 32px rgba(0, 212, 255, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-badge {
+            padding: 4px 10px;
+            background: var(--tron-cyan-dim);
+            border-radius: 12px;
+            font-size: 11px;
+            color: var(--tron-cyan);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--tron-cyan);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.15);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .form-input.valid {
+            border-color: var(--accent-green);
+        }
+
+        .form-input.invalid {
+            border-color: var(--accent-red);
+        }
+
+        /* Password Input with Toggle */
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper .form-input {
+            padding-right: 50px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .password-toggle:hover {
+            color: var(--tron-cyan);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--tron-cyan);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 20px var(--tron-cyan-glow);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border-color: var(--clear-glass-border);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--tron-cyan-dim);
+            color: var(--tron-cyan);
+        }
+
+        .btn-success {
+            background: rgba(52, 199, 89, 0.2);
+            border-color: rgba(52, 199, 89, 0.4);
+            color: var(--accent-green);
+        }
+
+        .btn-danger {
+            background: rgba(255, 59, 48, 0.2);
+            border-color: rgba(255, 59, 48, 0.4);
+            color: var(--accent-red);
+        }
+
+        .btn-icon {
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-md);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        /* Endpoint Entry */
+        .endpoint-entry {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .endpoint-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .endpoint-number {
+            font-size: 13px;
+            color: var(--tron-cyan);
+            font-weight: 600;
+        }
+
+        .endpoint-delete {
+            background: rgba(255, 59, 48, 0.2);
+            border: none;
+            color: var(--accent-red);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .endpoint-delete:hover {
+            background: rgba(255, 59, 48, 0.4);
+        }
+
+        /* Status Messages */
+        .status-message {
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            margin-top: 16px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-message.show {
+            display: flex;
+        }
+
+        .status-message.success {
+            background: rgba(52, 199, 89, 0.15);
+            border: 1px solid rgba(52, 199, 89, 0.3);
+            color: var(--accent-green);
+        }
+
+        .status-message.error {
+            background: rgba(255, 59, 48, 0.15);
+            border: 1px solid rgba(255, 59, 48, 0.3);
+            color: var(--accent-red);
+        }
+
+        .status-message.warning {
+            background: rgba(255, 149, 0, 0.15);
+            border: 1px solid rgba(255, 149, 0, 0.3);
+            color: var(--accent-orange);
+        }
+
+        .status-message.loading {
+            background: rgba(0, 212, 255, 0.15);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            color: var(--tron-cyan);
+        }
+
+        /* Toggle Switch */
+        .toggle-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .toggle-label {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 28px;
+            background: rgba(120, 120, 128, 0.32);
+            border-radius: 28px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent-green);
+        }
+
+        .toggle-switch::before {
+            content: '';
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.active::before {
+            left: 24px;
+        }
+
+        /* Help Section */
+        .help-toc {
+            background: var(--clear-glass);
+            border: 1px solid var(--clear-glass-border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .help-toc-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--tron-cyan);
+            margin-bottom: 16px;
+        }
+
+        .help-toc-list {
+            list-style: none;
+        }
+
+        .help-toc-list li {
+            margin-bottom: 8px;
+        }
+
+        .help-toc-list a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .help-toc-list a:hover {
+            color: var(--tron-cyan);
+        }
+
+        .help-section {
+            margin-bottom: 32px;
+            scroll-margin-top: 20px;
+        }
+
+        .help-section h3 {
+            font-size: 18px;
+            color: var(--tron-cyan);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--clear-glass-border);
+        }
+
+        .help-section p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+
+        .help-section ul {
+            margin-left: 20px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .help-section code {
+            background: rgba(0, 212, 255, 0.15);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            color: var(--tron-cyan);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Form Row */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                width: 60px;
+            }
+
+            .menu-item span {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- TRON Background -->
+    <div class="landscape-bg">
+        <div class="aura-light aura-1"></div>
+        <div class="aura-light aura-2"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="back-btn" onclick="window.location.href='/'">← Back to Home</button>
+                <span class="logo">⚙️ Settings</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Sidebar -->
+            <nav class="sidebar">
+                <div class="sidebar-title">Configuration</div>
+                <div class="menu-item active" data-section="doc-intelligence">
+                    <span class="menu-icon">🔍</span>
+                    <span>Document Intelligence</span>
+                </div>
+                <div class="menu-item" data-section="azure-openai">
+                    <span class="menu-icon">🤖</span>
+                    <span>Azure Open AI</span>
+                </div>
+                <div class="menu-item" data-section="azure-storage">
+                    <span class="menu-icon">☁️</span>
+                    <span>Azure Storage</span>
+                </div>
+                <div class="menu-item" data-section="output-json">
+                    <span class="menu-icon">📁</span>
+                    <span>Output Json</span>
+                </div>
+                <div class="menu-item" data-section="split-pdf">
+                    <span class="menu-icon">✂️</span>
+                    <span>Split PDF</span>
+                </div>
+                <div class="menu-item" data-section="help">
+                    <span class="menu-icon">❓</span>
+                    <span>Help</span>
+                </div>
+            </nav>
+
+            <!-- Content Panel -->
+            <div class="content-panel">
+
+                <!-- Document Intelligence Section -->
+                <section class="panel-section active" id="doc-intelligence">
+                    <h2 class="section-title">Document Intelligence</h2>
+                    <p class="section-desc">Configure Azure Document Intelligence endpoints for document analysis</p>
+
+                    <div id="docIntelligenceEntries">
+                        <!-- Entries will be added here dynamically -->
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="addDocIntelligenceEntry()">
+                        ➕ Add Endpoint
+                    </button>
+
+                    <div class="status-message" id="docIntelligenceStatus"></div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-success" onclick="verifyAndSaveDocIntelligence()">
+                            ✓ Verify & Save
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Azure OpenAI Section -->
+                <section class="panel-section" id="azure-openai">
+                    <h2 class="section-title">Azure Open AI</h2>
+                    <p class="section-desc">Configure Azure OpenAI endpoints for AI-powered extraction</p>
+
+                    <div id="azureOpenAIEntries">
+                        <!-- Entries will be added here dynamically -->
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="addAzureOpenAIEntry()">
+                        ➕ Add Endpoint
+                    </button>
+
+                    <div class="status-message" id="azureOpenAIStatus"></div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-success" onclick="verifyAndSaveAzureOpenAI()">
+                            ✓ Verify & Save
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Azure Storage Section -->
+                <section class="panel-section" id="azure-storage">
+                    <h2 class="section-title">Azure Storage</h2>
+                    <p class="section-desc">Configure Azure Blob Storage connection for cloud file access</p>
+
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <div class="card-title">Storage Configuration</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Connection String</label>
+                            <div class="password-wrapper">
+                                <input type="password" class="form-input" id="storageConnectionString"
+                                    placeholder="DefaultEndpointsProtocol=https;AccountName=...">
+                                <button class="password-toggle"
+                                    onclick="togglePassword('storageConnectionString')">👁️</button>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Account Name</label>
+                                <input type="text" class="form-input" id="storageAccountName"
+                                    placeholder="devwecbglbstorage01">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Account Key</label>
+                                <div class="password-wrapper">
+                                    <input type="password" class="form-input" id="storageAccountKey"
+                                        placeholder="AMiLPu8KcmHsAa//...">
+                                    <button class="password-toggle"
+                                        onclick="togglePassword('storageAccountKey')">👁️</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="status-message" id="azureStorageStatus"></div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" onclick="verifyAzureStorage()">
+                            🔄 Test Connection
+                        </button>
+                        <button class="btn btn-success" onclick="saveAzureStorage()">
+                            ✓ Save
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Output JSON Section -->
+                <section class="panel-section" id="output-json">
+                    <h2 class="section-title">Output JSON Paths</h2>
+                    <p class="section-desc">Configure output directories for extracted JSON files</p>
+
+                    <div class="glass-card">
+                        <div class="form-group">
+                            <label class="form-label">JSON Files Path</label>
+                            <input type="text" class="form-input" id="jsonFilesPath"
+                                placeholder="C:\path\to\OUTPUT JSON\JSON FILES">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Accepted Files Path</label>
+                            <input type="text" class="form-input" id="jsonAcceptedPath"
+                                placeholder="C:\path\to\OUTPUT JSON\ACCEPTED">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Rejected Files Path</label>
+                            <input type="text" class="form-input" id="jsonRejectedPath"
+                                placeholder="C:\path\to\OUTPUT JSON\REJECTED">
+                        </div>
+                    </div>
+
+                    <div class="status-message" id="outputJsonStatus"></div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" onclick="verifyOutputPaths()">
+                            🔄 Verify Paths
+                        </button>
+                        <button class="btn btn-success" onclick="saveOutputPaths()">
+                            ✓ Save
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Split PDF Section -->
+                <section class="panel-section" id="split-pdf">
+                    <h2 class="section-title">Split PDF Configuration</h2>
+                    <p class="section-desc">Configure PDF splitting behavior and output settings</p>
+
+                    <div class="glass-card">
+                        <div class="form-group">
+                            <label class="form-label">Split PDF Output Path</label>
+                            <input type="text" class="form-input" id="splitPdfPath"
+                                placeholder="C:\path\to\SPLIT PDF FILES">
+                        </div>
+
+                        <div class="toggle-wrapper">
+                            <span class="toggle-label">Enable PDF Splitting</span>
+                            <div class="toggle-switch active" id="splitPdfEnabled" onclick="toggleSwitch(this)"></div>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 16px;">
+                            <label class="form-label">Split Method</label>
+                            <select class="form-input" id="splitPdfMethod">
+                                <option value="barcode_vendor">Barcode & Vendor Detection</option>
+                                <option value="barcode">Barcode Only</option>
+                                <option value="vendor">Vendor Only</option>
+                                <option value="ai">AI-Based</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Naming Pattern</label>
+                            <input type="text" class="form-input" id="splitPdfNaming"
+                                placeholder="{original_name}_{increment}">
+                        </div>
+                    </div>
+
+                    <div class="status-message" id="splitPdfStatus"></div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" onclick="verifySplitPdfPath()">
+                            🔄 Verify Path
+                        </button>
+                        <button class="btn btn-success" onclick="saveSplitPdfSettings()">
+                            ✓ Save
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Help Section -->
+                <section class="panel-section" id="help">
+                    <h2 class="section-title">Help & Documentation</h2>
+                    <p class="section-desc">Comprehensive guide to configuring Universal Data Extractor</p>
+
+                    <!-- Table of Contents -->
+                    <div class="help-toc">
+                        <div class="help-toc-title">📚 Table of Contents</div>
+                        <ul class="help-toc-list">
+                            <li><a href="#help-overview">📖 Overview</a></li>
+                            <li><a href="#help-features">⚡ Features</a></li>
+                            <li><a href="#help-supported-docs">📄 Supported Documents</a></li>
+                            <li><a href="#help-doc-intelligence">🔍 Document Intelligence Setup</a></li>
+                            <li><a href="#help-azure-openai">🤖 Azure OpenAI Setup</a></li>
+                            <li><a href="#help-azure-storage">☁️ Azure Storage Setup</a></li>
+                            <li><a href="#help-output-paths">📁 Output JSON Paths</a></li>
+                            <li><a href="#help-split-pdf">✂️ PDF Splitting Configuration</a></li>
+                            <li><a href="#help-troubleshooting">🔧 Troubleshooting</a></li>
+                        </ul>
+                    </div>
+
+                    <!-- Documentation Sections -->
+                    <div class="glass-card">
+                        <div class="help-section" id="help-overview">
+                            <h3>📖 Overview</h3>
+                            <p>Universal Data Extractor is an AI-powered document processing application that extracts
+                                structured data from various document formats using Azure Document Intelligence and
+                                Azure OpenAI services.</p>
+                            <p>The application supports batch processing, parallel extraction, PDF splitting with
+                                barcode detection, and cloud storage integration.</p>
+                        </div>
+
+                        <div class="help-section" id="help-features">
+                            <h3>⚡ Features</h3>
+                            <ul>
+                                <li><strong>Multi-format Support</strong> - Process PDF, DOCX, XLSX, CSV, and EML files
+                                </li>
+                                <li><strong>AI-Powered Extraction</strong> - Uses GPT models for intelligent field
+                                    extraction</li>
+                                <li><strong>Barcode Detection</strong> - Automatically detect and split PDFs by barcode
+                                </li>
+                                <li><strong>Vendor Detection</strong> - Identify and group documents by vendor</li>
+                                <li><strong>Parallel Processing</strong> - Process multiple documents concurrently</li>
+                                <li><strong>Cloud Integration</strong> - Browse and process files from Azure Blob
+                                    Storage</li>
+                                <li><strong>Document Review</strong> - Review and approve/reject extracted data</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section" id="help-supported-docs">
+                            <h3>📄 Supported Documents</h3>
+                            <ul>
+                                <li><strong>PDF</strong> - Invoices, forms, contracts, and scanned documents</li>
+                                <li><strong>DOCX</strong> - Microsoft Word documents</li>
+                                <li><strong>XLSX/XLS</strong> - Excel spreadsheets with tabular data</li>
+                                <li><strong>CSV</strong> - Comma-separated value files</li>
+                                <li><strong>EML</strong> - Email files with attachments</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section" id="help-doc-intelligence">
+                            <h3>🔍 Document Intelligence Setup</h3>
+                            <p>Azure Document Intelligence (formerly Form Recognizer) is used to analyze document
+                                structure and extract content.</p>
+                            <p><strong>To configure:</strong></p>
+                            <ul>
+                                <li>Go to Azure Portal → Create a Document Intelligence resource</li>
+                                <li>Copy the <code>Endpoint</code> URL (e.g.,
+                                    https://your-resource.cognitiveservices.azure.com/)</li>
+                                <li>Copy one of the <code>Keys</code> from the Keys and Endpoint section</li>
+                                <li>Enter these values in the Document Intelligence settings</li>
+                                <li>Click "Verify & Save" to test the connection</li>
+                            </ul>
+                            <p><strong>Multiple Endpoints:</strong> Add multiple endpoints for faster processing through
+                                load distribution.</p>
+                        </div>
+
+                        <div class="help-section" id="help-azure-openai">
+                            <h3>🤖 Azure OpenAI Setup</h3>
+                            <p>Azure OpenAI provides the GPT models used for intelligent field extraction and document
+                                understanding.</p>
+                            <p><strong>To configure:</strong></p>
+                            <ul>
+                                <li>Go to Azure Portal → Create an Azure OpenAI resource</li>
+                                <li>Deploy a GPT model (e.g., gpt-4o, gpt-4-turbo)</li>
+                                <li>Copy the full <code>Endpoint</code> URL including the deployment name</li>
+                                <li>Copy the <code>API Key</code> from Keys and Endpoint</li>
+                                <li>Optionally specify the API version (default: 2024-08-01-preview)</li>
+                                <li>Click "Verify & Save" to test the connection</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section" id="help-azure-storage">
+                            <h3>☁️ Azure Storage Setup</h3>
+                            <p>Azure Blob Storage enables processing of files stored in the cloud.</p>
+                            <p><strong>To configure:</strong></p>
+                            <ul>
+                                <li>Go to Azure Portal → Storage Account → Access Keys</li>
+                                <li>Copy the <code>Connection String</code></li>
+                                <li>Enter the <code>Account Name</code> and <code>Account Key</code></li>
+                                <li>Click "Test Connection" to verify access</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section" id="help-output-paths">
+                            <h3>📁 Output JSON Paths</h3>
+                            <p>Configure where extracted JSON data is saved:</p>
+                            <ul>
+                                <li><strong>JSON Files Path</strong> - Primary location for all extracted JSON files
+                                </li>
+                                <li><strong>Accepted Path</strong> - Location for approved documents after review</li>
+                                <li><strong>Rejected Path</strong> - Location for rejected documents after review</li>
+                            </ul>
+                            <p>If folders don't exist, they will be created automatically when you save.</p>
+                        </div>
+
+                        <div class="help-section" id="help-split-pdf">
+                            <h3>✂️ PDF Splitting Configuration</h3>
+                            <p>Configure how multi-page PDFs are split into individual documents:</p>
+                            <ul>
+                                <li><strong>Enable PDF Splitting</strong> - Turn splitting on/off</li>
+                                <li><strong>Split Method</strong>:
+                                    <ul>
+                                        <li><code>barcode_vendor</code> - Use barcode detection first, then vendor
+                                            detection</li>
+                                        <li><code>barcode</code> - Split only by barcode detection</li>
+                                        <li><code>vendor</code> - Split only by vendor/header detection</li>
+                                        <li><code>ai</code> - Use AI to determine split points</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Naming Pattern</strong> - Pattern for split file names:
+                                    <ul>
+                                        <li><code>{original_name}</code> - Original filename</li>
+                                        <li><code>{increment}</code> - Sequential number</li>
+                                        <li><code>{barcode}</code> - Detected barcode value</li>
+                                        <li><code>{vendor}</code> - Detected vendor name</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section" id="help-troubleshooting">
+                            <h3>🔧 Troubleshooting</h3>
+                            <p><strong>Common Issues:</strong></p>
+                            <ul>
+                                <li><strong>Connection Failed</strong> - Verify endpoint URLs don't have trailing
+                                    slashes</li>
+                                <li><strong>Authentication Error</strong> - Check that API keys are correct and not
+                                    expired</li>
+                                <li><strong>Barcode Detection Failed</strong> - Install required libraries:
+                                    <code>pip install pdf2image pyzbar pillow</code></li>
+                                <li><strong>Path Not Found</strong> - Use full Windows paths (e.g., C:\Users\...)</li>
+                                <li><strong>Slow Processing</strong> - Add multiple endpoints to distribute load</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ============================================
+        // STATE MANAGEMENT
+        // ============================================
+        let settings = {
+            docIntelligence: [],
+            azureOpenAI: [],
+            azureStorage: {},
+            outputJson: {},
+            splitPdf: {}
+        };
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            initMenuNavigation();
+            loadSettings();
+        });
+
+        function initMenuNavigation() {
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    // Update active menu item
+                    menuItems.forEach(mi => mi.classList.remove('active'));
+                    item.classList.add('active');
+
+                    // Show corresponding section
+                    const sectionId = item.dataset.section;
+                    document.querySelectorAll('.panel-section').forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    document.getElementById(sectionId).classList.add('active');
+                });
+            });
+        }
+
+        // ============================================
+        // LOAD SETTINGS FROM BACKEND
+        // ============================================
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                if (response.ok) {
+                    settings = await response.json();
+                    populateSettings();
+                }
+            } catch (error) {
+                console.error('Failed to load settings:', error);
+            }
+        }
+
+        function populateSettings() {
+            // Document Intelligence
+            const docEntries = document.getElementById('docIntelligenceEntries');
+            docEntries.innerHTML = '';
+            if (settings.docIntelligence && settings.docIntelligence.length > 0) {
+                settings.docIntelligence.forEach((entry, index) => {
+                    addDocIntelligenceEntry(entry.endpoint, entry.key);
+                });
+            } else {
+                addDocIntelligenceEntry(settings.DOC_ENDPOINT || '', settings.DOC_KEY || '');
+            }
+
+            // Azure OpenAI
+            const openAIEntries = document.getElementById('azureOpenAIEntries');
+            openAIEntries.innerHTML = '';
+            if (settings.azureOpenAI && settings.azureOpenAI.length > 0) {
+                settings.azureOpenAI.forEach((entry, index) => {
+                    addAzureOpenAIEntry(entry.endpoint, entry.key, entry.apiVersion, entry.deployment);
+                });
+            } else {
+                addAzureOpenAIEntry(
+                    settings.AZURE_OPENAI_ENDPOINT || '',
+                    settings.AZURE_OPENAI_KEY || '',
+                    settings.AZURE_OPENAI_API_VERSION || '2024-08-01-preview',
+                    settings.AZURE_OPENAI_DEPLOYMENT || ''
+                );
+            }
+
+            // Azure Storage
+            document.getElementById('storageConnectionString').value = settings.AZURE_STORAGE_CONNECTION_STRING || '';
+            document.getElementById('storageAccountName').value = settings.AZURE_STORAGE_ACCOUNT_NAME || '';
+            document.getElementById('storageAccountKey').value = settings.AZURE_STORAGE_ACCOUNT_KEY || '';
+
+            // Output JSON
+            document.getElementById('jsonFilesPath').value = settings.OUTPUT_JSON_FILES_PATH || '';
+            document.getElementById('jsonAcceptedPath').value = settings.OUTPUT_JSON_ACCEPTED_PATH || '';
+            document.getElementById('jsonRejectedPath').value = settings.OUTPUT_JSON_REJECTED_PATH || '';
+
+            // Split PDF
+            document.getElementById('splitPdfPath').value = settings.SPLIT_PDF_OUTPUT_PATH || '';
+            const splitEnabled = document.getElementById('splitPdfEnabled');
+            if (settings.SPLIT_PDF_ENABLED === 'true' || settings.SPLIT_PDF_ENABLED === true) {
+                splitEnabled.classList.add('active');
+            } else {
+                splitEnabled.classList.remove('active');
+            }
+            document.getElementById('splitPdfMethod').value = settings.SPLIT_PDF_METHOD || 'barcode_vendor';
+            document.getElementById('splitPdfNaming').value = settings.SPLIT_PDF_NAMING_PATTERN || '{original_name}_{increment}';
+        }
+
+        // ============================================
+        // DOCUMENT INTELLIGENCE FUNCTIONS
+        // ============================================
+        function addDocIntelligenceEntry(endpoint = '', key = '') {
+            const container = document.getElementById('docIntelligenceEntries');
+            const entryCount = container.children.length + 1;
+
+            const entryHTML = `
+                <div class="endpoint-entry">
+                    <div class="endpoint-header">
+                        <span class="endpoint-number">Endpoint #${entryCount}</span>
+                        ${entryCount > 1 ? `<button class="endpoint-delete" onclick="removeEntry(this)">✕</button>` : ''}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Document Intelligence Endpoint</label>
+                        <input type="text" class="form-input doc-endpoint" 
+                            value="${endpoint}"
+                            placeholder="https://your-resource.cognitiveservices.azure.com/">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Document Intelligence Key</label>
+                        <div class="password-wrapper">
+                            <input type="password" class="form-input doc-key" 
+                                value="${key}"
+                                placeholder="Enter your API key">
+                            <button class="password-toggle" onclick="togglePasswordField(this)">👁️</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', entryHTML);
+        }
+
+        async function verifyAndSaveDocIntelligence() {
+            const statusEl = document.getElementById('docIntelligenceStatus');
+            showStatus(statusEl, 'loading', '🔄 Verifying endpoints...');
+
+            const entries = [];
+            const entryEls = document.querySelectorAll('#docIntelligenceEntries .endpoint-entry');
+
+            for (const entryEl of entryEls) {
+                const endpoint = entryEl.querySelector('.doc-endpoint').value.trim();
+                const key = entryEl.querySelector('.doc-key').value.trim();
+
+                if (!endpoint || !key) continue;
+
+                // Verify endpoint
+                try {
+                    const response = await fetch('/api/settings/verify/doc-intelligence', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ endpoint, key })
+                    });
+
+                    const result = await response.json();
+                    if (!result.valid) {
+                        showStatus(statusEl, 'error', `❌ Invalid endpoint: ${result.error || 'Connection failed'}`);
+                        return;
+                    }
+                    entries.push({ endpoint, key });
+                } catch (error) {
+                    showStatus(statusEl, 'error', `❌ Verification failed: ${error.message}`);
+                    return;
+                }
+            }
+
+            if (entries.length === 0) {
+                showStatus(statusEl, 'error', '❌ Please enter at least one endpoint and key');
+                return;
+            }
+
+            // Save settings
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        DOC_ENDPOINT: entries[0].endpoint,
+                        DOC_KEY: entries[0].key,
+                        docIntelligence: entries
+                    })
+                });
+
+                if (response.ok) {
+                    showStatus(statusEl, 'success', '✓ Settings verified and saved successfully!');
+                } else {
+                    showStatus(statusEl, 'error', '❌ Failed to save settings');
+                }
+            } catch (error) {
+                showStatus(statusEl, 'error', `❌ Save failed: ${error.message}`);
+            }
+        }
+
+        // ============================================
+        // AZURE OPENAI FUNCTIONS
+        // ============================================
+        function addAzureOpenAIEntry(endpoint = '', key = '', apiVersion = '2024-08-01-preview', deployment = '') {
+            const container = document.getElementById('azureOpenAIEntries');
+            const entryCount = container.children.length + 1;
+
+            const entryHTML = `
+                <div class="endpoint-entry">
+                    <div class="endpoint-header">
+                        <span class="endpoint-number">Endpoint #${entryCount}</span>
+                        ${entryCount > 1 ? `<button class="endpoint-delete" onclick="removeEntry(this)">✕</button>` : ''}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Azure OpenAI Endpoint</label>
+                        <input type="text" class="form-input openai-endpoint" 
+                            value="${endpoint}"
+                            placeholder="https://your-resource.openai.azure.com/...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Azure OpenAI Key</label>
+                        <div class="password-wrapper">
+                            <input type="password" class="form-input openai-key" 
+                                value="${key}"
+                                placeholder="Enter your API key">
+                            <button class="password-toggle" onclick="togglePasswordField(this)">👁️</button>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">API Version (Optional)</label>
+                            <input type="text" class="form-input openai-version" 
+                                value="${apiVersion}"
+                                placeholder="2024-08-01-preview">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Deployment Name (Optional)</label>
+                            <input type="text" class="form-input openai-deployment" 
+                                value="${deployment}"
+                                placeholder="document-model1">
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', entryHTML);
+        }
+
+        async function verifyAndSaveAzureOpenAI() {
+            const statusEl = document.getElementById('azureOpenAIStatus');
+            showStatus(statusEl, 'loading', '🔄 Verifying Azure OpenAI endpoints...');
+
+            const entries = [];
+            const entryEls = document.querySelectorAll('#azureOpenAIEntries .endpoint-entry');
+
+            for (const entryEl of entryEls) {
+                const endpoint = entryEl.querySelector('.openai-endpoint').value.trim();
+                const key = entryEl.querySelector('.openai-key').value.trim();
+                const apiVersion = entryEl.querySelector('.openai-version').value.trim();
+                const deployment = entryEl.querySelector('.openai-deployment').value.trim();
+
+                if (!endpoint || !key) continue;
+
+                // Verify endpoint
+                try {
+                    const response = await fetch('/api/settings/verify/azure-openai', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ endpoint, key, apiVersion, deployment })
+                    });
+
+                    const result = await response.json();
+                    if (!result.valid) {
+                        showStatus(statusEl, 'error', `❌ Invalid endpoint: ${result.error || 'Connection failed'}`);
+                        return;
+                    }
+                    entries.push({ endpoint, key, apiVersion, deployment });
+                } catch (error) {
+                    showStatus(statusEl, 'error', `❌ Verification failed: ${error.message}`);
+                    return;
+                }
+            }
+
+            if (entries.length === 0) {
+                showStatus(statusEl, 'error', '❌ Please enter at least one endpoint and key');
+                return;
+            }
+
+            // Save settings
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        AZURE_OPENAI_ENDPOINT: entries[0].endpoint,
+                        AZURE_OPENAI_KEY: entries[0].key,
+                        AZURE_OPENAI_API_VERSION: entries[0].apiVersion || '2024-08-01-preview',
+                        AZURE_OPENAI_DEPLOYMENT: entries[0].deployment,
+                        azureOpenAI: entries
+                    })
+                });
+
+                if (response.ok) {
+                    showStatus(statusEl, 'success', '✓ Azure OpenAI settings verified and saved successfully!');
+                } else {
+                    showStatus(statusEl, 'error', '❌ Failed to save settings');
+                }
+            } catch (error) {
+                showStatus(statusEl, 'error', `❌ Save failed: ${error.message}`);
+            }
+        }
+
+        // ============================================
+        // AZURE STORAGE FUNCTIONS
+        // ============================================
+        async function verifyAzureStorage() {
+            const statusEl = document.getElementById('azureStorageStatus');
+            showStatus(statusEl, 'loading', '🔄 Testing Azure Storage connection...');
+
+            const connectionString = document.getElementById('storageConnectionString').value.trim();
+
+            try {
+                const response = await fetch('/api/settings/verify/azure-storage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ connectionString })
+                });
+
+                const result = await response.json();
+                if (result.valid) {
+                    showStatus(statusEl, 'success', `✓ Connection successful! Found ${result.containers || 0} containers.`);
+                } else {
+                    showStatus(statusEl, 'error', `❌ Connection failed: ${result.error}`);
+                }
+            } catch (error) {
+                showStatus(statusEl, 'error', `❌ Test failed: ${error.message}`);
+            }
+        }
+
+        async function saveAzureStorage() {
+            const statusEl = document.getElementById('azureStorageStatus');
+
+            const data = {
+                AZURE_STORAGE_CONNECTION_STRING: document.getElementById('storageConnectionString').value.trim(),
+                AZURE_STORAGE_ACCOUNT_NAME: document.getElementById('storageAccountName').value.trim(),
+                AZURE_STORAGE_ACCOUNT_KEY: document.getElementById('storageAccountKey').value.trim()
+            };
+
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    showStatus(statusEl, 'success', '✓ Azure Storage settings saved!');
+                } else {
+                    showStatus(statusEl, 'error', '❌ Failed to save settings');
+                }
+            } catch (error) {
+                showStatus(statusEl, 'error', `❌ Save failed: ${error.message}`);
+            }
+        }
+
+        // ============================================
+        // OUTPUT JSON FUNCTIONS
+        // ============================================
+        async function verifyOutputPaths() {
+            const statusEl = document.getElementById('outputJsonStatus');
+            showStatus(statusEl, 'loading', '🔄 Verifying paths...');
+
+            const paths = [
+                { key: 'OUTPUT_JSON_FILES_PATH', value: document.getElementById('jsonFilesPath').value.trim() },
+                { key: 'OUTPUT_JSON_ACCEPTED_PATH', value: document.getElementById('jsonAcceptedPath').value.trim() },
+                { key: 'OUTPUT_JSON_REJECTED_PATH', value: document.getElementById('jsonRejectedPath').value.trim() }
+            ];
+
+            try {
+                const response = await fetch('/api/settings/verify/path', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paths, createIfMissing: true })
+                });
+
+                const result = await response.json();
+                if (result.valid) {
+                    showStatus(statusEl, 'success', `✓ All paths verified! ${result.created ? 'Missing folders were created.' : ''}`);
+                } else {
+                    showStatus(statusEl, 'error', `❌ Path verification failed: ${result.error}`);
+                }
+            } catch (error) {
+                showStatus(statusEl, 'error', `❌ Verification failed: ${error.message}`);
+            }
+        }
+
+        async function saveOutputPaths() {
+            const statusEl = document.getElementById('outputJsonStatus');
+
+            const data = {
+                OUTPUT_JSON_FILES_PATH: document.getElementById('jsonFilesPath').value.trim(),
+                OUTPUT_JSON_ACCEPTED_PATH: document.getElementById('jsonAcceptedPath').value.trim(),
+                OUTPUT_JSON_REJECTED_PATH: document.getElementById('jsonRejectedPath').value.trim()
+            };
+
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    showStatus(statusEl, 'success', '✓ Output paths saved!');
+                } else {
+                    showStatus(statusEl, 'error', '❌ Failed to save settings');
+                }
+            } catch (error) {
+                showStatus(statusEl, 'error', `❌ Save failed: ${error.message}`);
+            }
+        }
+
+        // ============================================
+        // SPLIT PDF FUNCTIONS
+        // ============================================
+        async function verifySplitPdfPath() {
+            const statusEl = document.getElementById('splitPdfStatus');
+            showStatus(statusEl, 'loading', '🔄 Verifying path...');
+
+            const path = document.getElementById('splitPdfPath').value.trim();
+
+            try {
+                const response = await fetch('/api/settings/verify/path', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paths: [{ key: 'SPLIT_PDF_OUTPUT_PATH', value: path }], createIfMissing: true })
+                });
+
+                const result = await response.json();
+                if (result.valid) {
+                    showStatus(statusEl, 'success', `✓ Path verified! ${result.created ? 'Folder was created.' : ''}`);
+                } else {
+                    showStatus(statusEl, 'error', `❌ Path verification failed: ${result.error}`);
+                }
+            } catch (error) {
+                showStatus(statusEl, 'error', `❌ Verification failed: ${error.message}`);
+            }
+        }
+
+        async function saveSplitPdfSettings() {
+            const statusEl = document.getElementById('splitPdfStatus');
+
+            const data = {
+                SPLIT_PDF_OUTPUT_PATH: document.getElementById('splitPdfPath').value.trim(),
+                SPLIT_PDF_ENABLED: document.getElementById('splitPdfEnabled').classList.contains('active') ? 'true' : 'false',
+                SPLIT_PDF_METHOD: document.getElementById('splitPdfMethod').value,
+                SPLIT_PDF_NAMING_PATTERN: document.getElementById('splitPdfNaming').value.trim()
+            };
+
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    showStatus(statusEl, 'success', '✓ Split PDF settings saved!');
+                } else {
+                    showStatus(statusEl, 'error', '❌ Failed to save settings');
+                }
+            } catch (error) {
+                showStatus(statusEl, 'error', `❌ Save failed: ${error.message}`);
+            }
+        }
+
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        function togglePasswordField(button) {
+            const input = button.previousElementSibling;
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        function toggleSwitch(element) {
+            element.classList.toggle('active');
+        }
+
+        function removeEntry(button) {
+            button.closest('.endpoint-entry').remove();
+            // Renumber entries
+            const container = button.closest('#docIntelligenceEntries, #azureOpenAIEntries');
+            container.querySelectorAll('.endpoint-number').forEach((num, index) => {
+                num.textContent = `Endpoint #${index + 1}`;
+            });
+        }
+
+        function showStatus(element, type, message) {
+            element.className = `status-message show ${type}`;
+            element.innerHTML = type === 'loading' ? `<div class="spinner"></div> ${message}` : message;
+        }
+
+        // Smooth scroll for help links
+        document.querySelectorAll('.help-toc-list a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = document.querySelector(link.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
